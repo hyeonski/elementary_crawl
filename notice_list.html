@@ -1,0 +1,630 @@
+<script>
+ function encode64(str){
+	return encode(escape(str));
+}
+
+var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
+	
+function encode(input){
+	var output = ""
+	var chr1, chr2, chr3;
+	var enc1, enc2, enc3, enc4;
+	var i =0;
+	do{
+			chr1 = input.charCodeAt(i++);
+			chr2 = input.charCodeAt(i++);
+			chr3 = input.charCodeAt(i++);
+			enc1 = chr1 >> 2;
+			enc2 = ((chr1 & 3) << 4) | (chr2 >> 4 );
+			enc3 = ((chr2 & 15) << 2) | (chr3 >> 6 );
+			enc4 = chr3 & 63;
+			if(isNaN(chr2)){
+				enc3 = enc4 =64;
+			}else if(isNaN(chr3)){
+				enc4 = 64;
+			}
+			output = output + keyStr.charAt(enc1) + keyStr.charAt(enc2) + keyStr.charAt(enc3) + keyStr.charAt(enc4);
+	}while(i<input.length);
+	
+	return output;
+	}
+</script>
+<script type="text/javascript">
+ // 숫자가 아닌 정규식
+var replaceNotInt = /[^0-9]/gi;
+$(document).ready(function(){
+	// 숫자가 아닌 정규식
+	$("#pageIndex").on("focusout", function() {
+        var x = $(this).val();
+        if (x.length > 0) {
+            if (x.match(replaceNotInt)) {
+               x = x.replace(replaceNotInt, "");
+            }
+            $(this).val(x);
+        }
+    }).on("keyup", function() {
+        $(this).val($(this).val().replace(replaceNotInt, ""));
+    });
+	//
+	
+	$("#regist_btn").click(function (){
+		
+		$.ajax({
+	        type:'POST'
+	      , url:'/dggb/module/board/registBoardPageAjax.do'
+	      , cache : false
+	      , async : false
+	      , data:$("#boardFrm").serialize()
+	      , success:function (data) {
+	    	  $('#board_area').html(data);
+	      }
+	      , error:function (data) {
+	          alert('오류');
+	      }
+	      , dateType: 'html'
+	 	});   
+		
+	});
+	
+	$("#delete_btn").click(function (){
+		
+		var checkCnt = 0;
+		var checkNttId = "";
+
+		for (var i = 0; i < document.getElementsByName("nttIdChk").length; i++){
+			if (document.getElementsByName("nttIdChk")[i].checked == true){
+				checkNttId += document.getElementsByName('nttIdChk')[i].value + ",";
+				checkCnt++;
+			}
+		}
+		
+		if(checkCnt < 1){
+			alert("체크박스를 선택해주세요.");
+			return;
+		}
+		
+		if(confirm("게시글을 삭제하시겠습니까?")){
+			
+			document.getElementById('checkNttId').value = checkNttId;
+			
+			$.ajax({
+				type:'POST'
+				, url:'/dggb/module/module/board/deleteBoardCheckAjax.do'
+				, cache : false
+				, async : false
+				, data:$("#boardFrm").serialize()
+				, success:function (data) {
+					$('#board_area').html(data);
+				}
+				, error:function (data) {
+				    alert('오류');
+				}
+	      	});
+		}else{
+			return;
+		}
+	});
+	
+	$("#move_btn").click(function (){
+		
+		var checkCnt = 0;
+		var checkNttId = "";
+
+		for (var i = 0; i < document.getElementsByName("nttIdChk").length; i++){
+			if (document.getElementsByName("nttIdChk")[i].checked == true && document.getElementsByName("nttIdChk")[i].disabled == false){
+				checkNttId += document.getElementsByName('nttIdChk')[i].value + ",";
+				checkCnt++;
+			}
+		}
+		
+		if(checkCnt < 1){
+			alert("체크박스를 선택해주세요.");
+			return;
+		}
+			
+		document.getElementById('checkNttId').value = checkNttId;
+		
+		$.ajax({
+	        type:'POST'
+	      , url:'/dggb/module/board/boardCmmn/mvmnBoardPageAjax.do'
+	      , cache : false
+	      , async : false
+	      , data:$("#boardFrm").serialize()
+	      , success:function (data) {
+	    	  $("#boardMngr_layer").html(data);
+	    	  $("#boardMngr_layer").show();
+	      }
+	      , error:function (request, status, error) {
+	    	  alert("code : " + request.status + "\r\nmessage : " + request.reponseText);
+	      }
+	      , dateType: 'html'
+	 	});
+        
+	});
+	
+	$("#login_regist_btn").click(function (){
+		
+		alert("정책참여 게시판 글쓰기는 로그인 후 이용해주세요.");		
+		window.location.href ="https://member.newhosting.ssem.or.kr/dggb/mber/mberLogin/mberLogin.do?baseInfo=";
+	});	
+});
+
+	
+	function fnPage(pageNo){
+		document.getElementById('pageIndex').value = pageNo;
+		
+		$.ajax({
+	        type:'POST'
+	      , url:'/dggb/module/board/selectBoardListAjax.do'
+	      , cache : false
+	      , async : false
+	      , data:$("#boardFrm").serialize()
+	      , success:function (data) {
+	    	  $('#board_area').html(data);
+	      }
+	      , error:function (data) {
+	          alert('오류');
+	      }
+	      , dateType: 'html'
+	 	});  
+		
+	}
+	
+	function fnView(bbsId, nttId){
+		
+		document.getElementById('nttId').value = nttId;
+		document.getElementById('bbsId').value = bbsId;
+		
+		//암복호
+		var ifNttId = encode64(nttId);
+		$('input[name=ifNttId]').val(ifNttId);
+		//
+		
+		$.ajax({
+	        type:'POST'
+	      , url:'/dggb/module/board/selectBoardDetailAjax.do'
+	      , cache : false
+	      , async : false
+	      , data:$("#boardFrm").serialize()
+	      , success:function (data) {
+	    	  $('#board_area').html(data);
+	      }
+	      , error:function (data) {
+	          alert('오류');
+	      }
+	      , dateType: 'html'
+	 	});    
+		
+	}
+	
+	// 체크박스 전체선택
+	function fnCheckBoxAll(obj){
+		var check_boolean = (obj.checked)? true: false; 
+		var check_list = document.getElementsByName("nttIdChk"); 
+
+		for (var i=0; i<check_list.length; i++) { 
+			check_list[i].checked = check_boolean; 
+		} 
+	}
+	
+	function fnPageSearch(){
+		document.getElementById('pageIndex').value = 1;
+		
+		//20191007 customRecordCountPerPage 변조방지
+		document.getElementById('customRecordCountPerPage').value = document.getElementById('recordPerPage').value; 
+		//
+		
+		$.ajax({
+	        type:'POST'
+	      , url:'/dggb/module/board/selectBoardListAjax.do'
+	      , cache : false
+	      , async : false
+	      , data:$("#boardFrm").serialize()
+	      , success:function (data) {
+	    	  $('#board_area').html(data);
+	      }
+	      , error:function (data) {
+	          alert('오류');
+	      }
+	      , dateType: 'html'
+	 	});  
+	}
+</script>
+<input id="nttId" name="nttId" type="hidden"/>
+<!-- 암복호 -->
+<input id="ifNttId" name="ifNttId" type="hidden" value=""/>
+<!-- // -->
+<div class="board_type01_table_top">
+ <!-- page count Start -->
+ <div class="board_type01_count">
+  <p>
+   <span class="total">
+    총 584건
+   </span>
+   <span class="count">
+    <label for="recordPerPage">
+    </label>
+    <select class="form-control w10" id="recordPerPage" onchange="document.getElementById('customRecordCountPerPage').value=this.value;fnPageSearch(this.value);" title="페이지당 조회건수">
+     <option selected="selected" value="10">
+      10건
+     </option>
+     <option value="30">
+      30건
+     </option>
+     <option value="50">
+      50건
+     </option>
+    </select>
+   </span>
+  </p>
+ </div>
+ <!-- page count End -->
+ <!-- 검색 Start -->
+ <div class="board_type01_search_box">
+  <fieldset>
+   <legend>
+    게시물 검색
+   </legend>
+   <label for="searchSe">
+    검색구분
+   </label>
+   <select class="board_type01_category" id="searchSe" title="검색구분">
+    <option selected="selected" value="">
+     선택
+    </option>
+    <option value="1">
+     제목
+    </option>
+    <option value="5">
+     내용
+    </option>
+    <option value="2">
+     작성자명
+    </option>
+    <option value="4">
+     작성자ID
+    </option>
+   </select>
+   <label for="searchWord">
+    검색어
+   </label>
+   <input class="board_type01_keyword" id="searchWord" onkeydown="if(event.keyCode == 13){fnSearch();}" title="검색어" type="text" value=""/>
+   <input class="board_type01_search_submit" onclick="fnSearch();" type="button" value="검색"/>
+  </fieldset>
+ </div>
+ <!-- 검색 End -->
+</div>
+<div class="board_header">
+ ◇ 개인정보 보호법 제59조 3호에 의해 다른 사람의 개인정보를 유출하는 자는 5년 이하의 징역 또는 5천만원 이하의 벌금이 부과될 수 있으며, 등록된 글에 대한 법적 책임은 글쓴이에게 있습니다. 또한 파일 첨부시 반드시 개인정보 유무를 확인해 주시기 바랍니다.
+ <br/>
+ <br/>
+ ◇
+ <span style="color: red; font-weight: bold;">
+  폰트파일
+ </span>
+ 은 저작권법상 컴퓨터 프로그램 저작물로 저작권 보호를 받고 있어,
+ <span style="color: red;">
+  불법 복제 및 무단 이용 시
+ </span>
+ 발생하는 민?형사상의 책임은 불법 행위를 한 본인에게 있습니다.
+ <br>
+ </br>
+</div>
+<div style="font-size:13px; font-weight:bold; margin-bottom:4px; text-align:right; color:#0066CC; ">
+ <p>
+  ◇게시글 보존년한은 5년 입니다.
+ </p>
+</div>
+<table class="board_type01_tb_list" summary="이표는 번호, 제목, 작성자, 작성일, 조회수로 구성되어 있습니다.">
+ <caption>
+  공지사항 게시판 목록
+ </caption>
+ <colgroup>
+  <col width="7%"/>
+  <col width="*"/>
+  <col width="13%"/>
+  <col width="13%"/>
+  <col width="10%"/>
+ </colgroup>
+ <thead>
+  <tr>
+   <th scope="col">
+    번호
+   </th>
+   <th scope="col">
+    제목
+   </th>
+   <th scope="col">
+    작성자
+   </th>
+   <th scope="col">
+    작성일
+   </th>
+   <th scope="col">
+    조회수
+   </th>
+  </tr>
+ </thead>
+ <tbody>
+  <!-- 공지목록 -->
+  <!-- 일반 예약일 -->
+  <tr>
+   <td>
+    584
+   </td>
+   <td class="subject">
+    <a class="samu" href="javascript:void(0);" onclick="fnView('BBSMSTR_000000012326', '21540998');" title="중학교 입학전 예방접종 안내">
+     중학교 입학전 예방접종 안내
+    </a>
+    <span class="new">
+     <img alt="NEW" src="/design/module/contents/contents/images/skyblue001/flag_new.gif"/>
+    </span>
+    <img alt="첨부파일" src="/images/dggb/mngr/sub/ico03.gif" title="첨부파일"/>
+   </td>
+   <td>
+    한상미
+   </td>
+   <td>
+    2021-09-10
+   </td>
+   <td>
+    137
+   </td>
+  </tr>
+  <!-- 일반 예약일 -->
+  <tr>
+   <td>
+    583
+   </td>
+   <td class="subject">
+    <a class="samu" href="javascript:void(0);" onclick="fnView('BBSMSTR_000000012326', '21531065');" title="&lt;어린이 인플루엔자 예방접종 안내&gt;">
+     &lt;어린이 인플루엔자 예방접종 안내&gt;
+    </a>
+    <img alt="첨부파일" src="/images/dggb/mngr/sub/ico03.gif" title="첨부파일"/>
+   </td>
+   <td>
+    한상미
+   </td>
+   <td>
+    2021-09-08
+   </td>
+   <td>
+    41
+   </td>
+  </tr>
+  <!-- 일반 예약일 -->
+  <tr>
+   <td>
+    582
+   </td>
+   <td class="subject">
+    <a class="samu" href="javascript:void(0);" onclick="fnView('BBSMSTR_000000012326', '21524696');" title="2022학년도 대학부설 영재교육원 모집요강 안내(요약)">
+     2022학년도 대학부설 영재교육원 모집요강 안내(요약)
+    </a>
+    <img alt="첨부파일" src="/images/dggb/mngr/sub/ico03.gif" title="첨부파일"/>
+   </td>
+   <td>
+    음승희
+   </td>
+   <td>
+    2021-09-07
+   </td>
+   <td>
+    43
+   </td>
+  </tr>
+  <!-- 일반 예약일 -->
+  <tr>
+   <td>
+    581
+   </td>
+   <td class="subject">
+    <a class="samu" href="javascript:void(0);" onclick="fnView('BBSMSTR_000000012326', '21522458');" title="서초구마음건강센터와 함께 하는 학부모 마음건강상담">
+     서초구마음건강센터와 함께 하는 학부모 마음건강상담
+    </a>
+    <img alt="첨부파일" src="/images/dggb/mngr/sub/ico03.gif" title="첨부파일"/>
+   </td>
+   <td>
+    한상미
+   </td>
+   <td>
+    2021-09-07
+   </td>
+   <td>
+    41
+   </td>
+  </tr>
+  <!-- 일반 예약일 -->
+  <tr>
+   <td>
+    580
+   </td>
+   <td class="subject">
+    <a class="samu" href="javascript:void(0);" onclick="fnView('BBSMSTR_000000012326', '21511064');" title="2021학년도 2학기 전교학생자치회 입후보자 명단">
+     2021학년도 2학기 전교학생자치회 입후보자 명단
+    </a>
+   </td>
+   <td>
+    기경희
+   </td>
+   <td>
+    2021-09-03
+   </td>
+   <td>
+    69
+   </td>
+  </tr>
+  <!-- 일반 예약일 -->
+  <tr>
+   <td>
+    579
+   </td>
+   <td class="subject">
+    <a class="samu" href="javascript:void(0);" onclick="fnView('BBSMSTR_000000012326', '21498686');" title="2021학년도 2학기 전교학생자치회 대표 선거 공고">
+     2021학년도 2학기 전교학생자치회 대표 선거 공고
+    </a>
+    <img alt="첨부파일" src="/images/dggb/mngr/sub/ico03.gif" title="첨부파일"/>
+   </td>
+   <td>
+    관리자
+   </td>
+   <td>
+    2021-09-01
+   </td>
+   <td>
+    91
+   </td>
+  </tr>
+  <!-- 일반 예약일 -->
+  <tr>
+   <td>
+    578
+   </td>
+   <td class="subject">
+    <a class="samu" href="javascript:void(0);" onclick="fnView('BBSMSTR_000000012326', '21482617');" title="[Sound of Seocho] 합창-합주단원 모집 안내">
+     [Sound of Seocho] 합창-합주단원 모집 안내
+    </a>
+    <img alt="첨부파일" src="/images/dggb/mngr/sub/ico03.gif" title="첨부파일"/>
+   </td>
+   <td>
+    정우정
+   </td>
+   <td>
+    2021-08-30
+   </td>
+   <td>
+    93
+   </td>
+  </tr>
+  <!-- 일반 예약일 -->
+  <tr>
+   <td>
+    577
+   </td>
+   <td class="subject">
+    <a class="samu" href="javascript:void(0);" onclick="fnView('BBSMSTR_000000012326', '21459493');" title="에코마일리지 안내문">
+     에코마일리지 안내문
+    </a>
+    <img alt="첨부파일" src="/images/dggb/mngr/sub/ico03.gif" title="첨부파일"/>
+   </td>
+   <td>
+    관리자
+   </td>
+   <td>
+    2021-08-25
+   </td>
+   <td>
+    126
+   </td>
+  </tr>
+  <!-- 일반 예약일 -->
+  <tr>
+   <td>
+    576
+   </td>
+   <td class="subject">
+    <a class="samu" href="javascript:void(0);" onclick="fnView('BBSMSTR_000000012326', '21414947');" title="2021학년도 학부모리더교육 4기 연수생 모집 안내(모집기간연장)">
+     2021학년도 학부모리더교육 4기 연수생 모집 안내(모집기간연장)
+    </a>
+    <img alt="첨부파일" src="/images/dggb/mngr/sub/ico03.gif" title="첨부파일"/>
+   </td>
+   <td>
+    기경희
+   </td>
+   <td>
+    2021-08-04
+   </td>
+   <td>
+    250
+   </td>
+  </tr>
+  <!-- 일반 예약일 -->
+  <tr>
+   <td>
+    575
+   </td>
+   <td class="subject">
+    <a class="samu" href="javascript:void(0);" onclick="fnView('BBSMSTR_000000012326', '21409494');" title="2022 계원예술중학교 입학전형 요강 안내">
+     2022 계원예술중학교 입학전형 요강 안내
+    </a>
+    <img alt="첨부파일" src="/images/dggb/mngr/sub/ico03.gif" title="첨부파일"/>
+   </td>
+   <td>
+    관리자
+   </td>
+   <td>
+    2021-07-28
+   </td>
+   <td>
+    288
+   </td>
+  </tr>
+ </tbody>
+</table>
+<div class="board_type01_pagenate">
+ <a href="javascript:void(0);" onclick="fnPage(1);return false; ">
+  <img alt="처음" src="/images/dggb/mngr/sub/paging_arr01.gif"/>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(1);return false; ">
+  <img alt="이전" src="/images/dggb/mngr/sub/paging_arr02.gif"/>
+ </a>
+ <a href="javascript:void(0);" onclick="return false; ">
+  <strong>
+   1
+  </strong>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(2);return false; ">
+  <span>
+   2
+  </span>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(3);return false; ">
+  <span>
+   3
+  </span>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(4);return false; ">
+  <span>
+   4
+  </span>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(5);return false; ">
+  <span>
+   5
+  </span>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(6);return false; ">
+  <span>
+   6
+  </span>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(7);return false; ">
+  <span>
+   7
+  </span>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(8);return false; ">
+  <span>
+   8
+  </span>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(9);return false; ">
+  <span>
+   9
+  </span>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(10);return false; ">
+  <span>
+   10
+  </span>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(11);return false; ">
+  <img alt="다음" src="/images/dggb/mngr/sub/paging_arr03.gif"/>
+ </a>
+ <a href="javascript:void(0);" onclick="fnPage(59);return false; ">
+  <img alt="마지막" src="/images/dggb/mngr/sub/paging_arr04.gif"/>
+ </a>
+</div>
+<div class="board_type01_table_bottom">
+</div>
+
