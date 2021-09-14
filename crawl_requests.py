@@ -5,6 +5,8 @@ import time
 import datetime
 import sys
 from urllib.parse import unquote
+from multiprocessing import Process
+from sqlalchemy import create_engine
 
 
 def myPost(url, cookies, data, headers=None):
@@ -12,59 +14,98 @@ def myPost(url, cookies, data, headers=None):
         response = requests.post(url, headers=headers, cookies=cookies, data=data)
         if response.status_code == 200:
             return response
-        sys.stderr.write("[{timestamp}] Error: {code}\n".format(timestamp=datetime.datetime.now(), code=response.status_code))
+        sys.stderr.write(f"[{datetime.datetime.now()}] Error: {response.status_code}\n")
         sys.stderr.flush()
         time.sleep(5)
 
-# Get Session
-response = requests.get('https://seo2.sen.es.kr/', allow_redirects=False)
-cookies = dict(response.cookies)
+def myGet(url, cookies, headers=None):
+    while True:
+        response = requests.get(url, headers=headers, cookies=cookies)
+        if response.status_code == 200:
+            return response
+        sys.stderr.write(f"[{datetime.datetime.now()}] Error: {response.status_code}\n")
+        sys.stderr.flush()
+        time.sleep(5)
 
-
-# Get Notce
-response = requests.get('https://seo2.sen.es.kr/78584/subMenu.do', cookies=cookies)
-formData = {}
-
-def getFormData(soup, formData):
+def getFormDataFromInputs(soup, formData):
     inputs = soup.select('input[type=hidden]')
     for input in inputs:
         value = input.get('value')
         formData[input.get('name')] = value if value != None else ''
-getFormData(BeautifulSoup(response.text, 'html.parser'), formData)
-formData['customRecordCountPerPage'] = 1000
-while True:
-    response = myPost('https://seo2.sen.es.kr/dggb/module/board/selectBoardListAjax.do', cookies=cookies, data=formData)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    if soup.select_one('tbody > tr > td').text == '조회된 내용이 없습니다.':
-        break
 
-    posts = list(enumerate(soup.select('tbody > tr')))
-    for index, post in posts:
-        nttId = post.select_one('td > a').get('onclick').replace("fnView('BBSMSTR_000000012326', '", '').replace("');", '').replace("');", '')
-        ifNttId = base64.b64encode(nttId.encode('ascii')).decode('ascii')
-        formData['nttId'] = nttId
-        formData['ifNttId'] = ifNttId
-        response = myPost('https://seo2.sen.es.kr/dggb/module/board/selectBoardDetailAjax.do', cookies=cookies, data=formData)
-        soup = BeautifulSoup(response.text, 'html.parser')
+def crawlBoard(boardUrl):
+    # Get Session
+    cookies = dict(requests.get('https://seo2.sen.es.kr/', allow_redirects=False).cookies)
+    userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36'
 
-        list = soup.select('tbody > tr > td > div')
+    count = 0
+    formData = {
+        'bbsId': '',
+        'bbsTyCode': '',
+        'customRecordCountPerPage': '',
+        'pageIndex': '',
+    }
+    getFormDataFromInputs(BeautifulSoup(myGet(boardUrl, cookies=cookies).text, 'html.parser'), formData)
 
-        author = list[0].text.strip()
-        upload_at = list[1].text.strip()
-        title = list[2].text.strip()
-        content = list[3]
+    formData['customRecordCountPerPage'] = 1000 # 한 페이지 당 게시글 수 조정
+    while True:
+        listResponse = myPost('https://seo2.sen.es.kr/dggb/module/board/selectBoardListAjax.do', cookies=cookies, data=formData)
+        soup = BeautifulSoup(listResponse.text, 'html.parser')
 
-        fileDiv = soup.select_one('div#file_div')
-        if fileDiv != None:
-            atchFileId = fileDiv.select_one('input[name=atchFileId]').get('value')
-            fileListCnt = fileDiv.select_one('input[name=fileListCnt]').get('value')
+        posts = soup.select('tbody > tr')
+        # print(posts.__len__())
+        for post in posts:
+            if len(post.find_all('td')) == 1:
+                return
 
-            for fileSn in range(int(fileListCnt)):
-                fileResponse = requests.get('https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId='+atchFileId+'&fileSn='+str(fileSn), headers={ 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36' })
-                fileName = unquote(fileResponse.headers['Content-Disposition'].split('filename=')[1])
-                fileSize = fileResponse.headers['Content-Length']
-                print(fileName, fileSize)
+            # print(count)
+            count += 1
+            formData['nttId'] = post.select_one('td > a').get('onclick').replace(f"fnView('{formData['bbsId']}', '", '').replace("');", '') # onclick 함수의 인자에서 nttId 값 추출
+            formData['ifNttId'] = base64.b64encode(formData['nttId'].encode('ascii')).decode('ascii')
+            postResponse = myPost('https://seo2.sen.es.kr/dggb/module/board/selectBoardDetailAjax.do', cookies=cookies, data=formData)
+            soup = BeautifulSoup(postResponse.text, 'html.parser')
+
+            elemsIntable = soup.select('tbody > tr > td > div')
+
+            author = elemsIntable[0].text.strip()
+            upload_at = elemsIntable[1].text.strip()
+            title = elemsIntable[2].text.strip()
+            content = elemsIntable[3]
+            # print(author, upload_at, title)
+
+            fileDiv = soup.select_one('div#file_div')
+            if fileDiv != None:
+                atchFileId = fileDiv.select_one('input[name=atchFileId]').get('value')
+                fileListCnt = fileDiv.select_one('input[name=fileListCnt]').get('value')
+
+                fileDownCnt = 0
+                fileSn = 0
+                while fileDownCnt < int(fileListCnt):
+                    fileUrl = 'https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId='+atchFileId+'&fileSn='+str(fileSn)
+                    fileResponse = myGet(fileUrl, cookies, headers={ 'User-Agent': userAgent })
+                    fileSn += 1
+                    if 'Content-Disposition' not in fileResponse.headers:
+                        continue
+                    fileDownCnt += 1
+                    fileName = unquote(fileResponse.headers['Content-Disposition'].split('filename=')[1])
+                    fileSize = fileResponse.headers['Content-Length']
+                    # print(fileName, fileSize)
+            # print("\n")
+
+        formData['nttId'] = ''
+        formData['ifNttId'] = ''
+        formData['pageIndex'] = str(int(formData['pageIndex']) + 1)
+
+if __name__ == '__main__':
+    # p1 = Process(target=crawlBoard, args=('https://seo2.sen.es.kr/78584/subMenu.do'))
+    # p2 = Process(target=crawlBoard, args=('https://seo2.sen.es.kr/78585/subMenu.do'))
+    # p3 = Process(target=crawlBoard, args=('https://seo2.sen.es.kr/113876/subMenu.do'))
     
-    formData['nttId'] = ''
-    formData['ifNttId'] = ''
-    formData['pageIndex'] = str(int(formData['pageIndex']) + 1)
+    # p1.start()
+    # p2.start()
+    # p3.start()
+
+    # p1.join()
+    # p2.join()
+    # p3.join()
+    engine = create_engine('mysql://admin:12345678@elementary-crawl.c6pvxgc9cmjq.ap-northeast-2.rds.amazonaws.com/elementary')
