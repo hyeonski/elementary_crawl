@@ -4,6 +4,8 @@ import base64
 import time
 import datetime
 import sys
+from urllib.parse import unquote
+
 
 def myPost(url, cookies, data, headers=None):
     while True:
@@ -44,8 +46,24 @@ while True:
         formData['ifNttId'] = ifNttId
         response = myPost('https://seo2.sen.es.kr/dggb/module/board/selectBoardDetailAjax.do', cookies=cookies, data=formData)
         soup = BeautifulSoup(response.text, 'html.parser')
-        title = soup.select('tbody > tr > td > div')[2].text.strip()
-        print(title)
+
+        list = soup.select('tbody > tr > td > div')
+
+        author = list[0].text.strip()
+        upload_at = list[1].text.strip()
+        title = list[2].text.strip()
+        content = list[3]
+
+        fileDiv = soup.select_one('div#file_div')
+        if fileDiv != None:
+            atchFileId = fileDiv.select_one('input[name=atchFileId]').get('value')
+            fileListCnt = fileDiv.select_one('input[name=fileListCnt]').get('value')
+
+            for fileSn in range(int(fileListCnt)):
+                fileResponse = requests.get('https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId='+atchFileId+'&fileSn='+str(fileSn), headers={ 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36' })
+                fileName = unquote(fileResponse.headers['Content-Disposition'].split('filename=')[1])
+                fileSize = fileResponse.headers['Content-Length']
+                print(fileName, fileSize)
     
     formData['nttId'] = ''
     formData['ifNttId'] = ''
