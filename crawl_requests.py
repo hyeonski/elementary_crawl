@@ -10,6 +10,9 @@ from multiprocessing import Process
 from database import Post
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
+from pymysql.err import IntegrityError
+
+PYMYSQL_DUPLICATE_ERROR = 1062
 
 def printErrorEndl(error):
     sys.stderr.write(f"[{datetime.datetime.now()}] Error: {error}\n")
@@ -118,11 +121,10 @@ def crawlBoard(boardUrl, postTypeId, dbSession):
             try:
                 dbSession.add(post)
                 dbSession.commit()
-            except Exception as e:
-                if e.args[0] == PY:
-                    dbSession.rollback()
-                    dbSession.flush()
+            except IntegrityError as e:
                 printErrorEndl(f'[{datetime.datetime.now()}] d{e.args[0]}d')
+                if e.args[0] != PYMYSQL_DUPLICATE_ERROR:
+                    raise e
             #####
 
         formData['nttId'] = ''
