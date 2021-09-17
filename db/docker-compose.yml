@@ -1,0 +1,14 @@
+version: "3"
+services:
+  db:
+    image: "mysql"
+    container_name: mysql-elementary
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "1234"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ./data:/var/lib/mysql

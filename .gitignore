@@ -2,3 +2,4 @@
 chromedriver
 *.log
 .DS_Store
+data

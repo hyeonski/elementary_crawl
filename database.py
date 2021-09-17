@@ -29,5 +29,3 @@ class AttachedFile(Base):
     fileSn = Column('file_sn', Integer, nullable=False)
     name = Column('name', String(255), nullable=False)
     size = Column('size', Integer, nullable=False)
-    downloadUrl = Column('download_url', String(255), nullable=False)
-    previewUrl = Column('preview_url', String(255), nullable=False)
