@@ -7,7 +7,6 @@ idna==3.2
 pycodestyle==2.7.0
 PyMySQL==1.0.2
 requests==2.26.0
-selenium==3.141.0
 soupsieve==2.2.1
 SQLAlchemy==1.4.23
 toml==0.10.2
