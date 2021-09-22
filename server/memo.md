@@ -1,0 +1,2 @@
+f'http://viewhosting.ssem.or.kr:8080/SynapDocViewServer/job?fid={atchFileId}_{fileSn}&filePath=https://seo2.sen.es.kr:443/dggb/cnvrFileDown.do?atchFileId={atchFileId}:{fileSn}&convertType=0&fileType=URL&sync=true'
+f'https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={atchFileId}&fileSn={str(fileSn)}'
