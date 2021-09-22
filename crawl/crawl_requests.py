@@ -57,7 +57,7 @@ def crawlBoard(boardUrl, postTypeId, dbSession):
                 author=elemsIntable[0].text.strip(),
                 upload_at=datetime.datetime.strptime(elemsIntable[1].text.strip(), '%Y-%m-%d'),
                 title=elemsIntable[2].text.strip(),
-                content=str(elemsIntable[3])
+                content=str(elemsIntable[3]).lstrip('<div class="content">').rstrip('</div>'),
                 )
 
             attachedFiles = []

@@ -3,3 +3,4 @@ chromedriver
 *.log
 .DS_Store
 data
+__pycache__
