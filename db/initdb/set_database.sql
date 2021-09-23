@@ -27,14 +27,15 @@ CREATE TABLE IF NOT EXISTS `elementary`.`post` (
   `title` VARCHAR(100) NOT NULL,
   `content` MEDIUMTEXT NULL,
   `post_type_id` INT NOT NULL,
+  `created_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `fk_post_post_type1`
     FOREIGN KEY (`post_type_id`)
     REFERENCES `elementary`.`post_type` (`id`)
-    ON DELETE CASCADE
+    ON DELETE RESTRICT
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
 
 -- -----------------------------------------------------
 -- Table `elementary`.`attached_file`
@@ -46,6 +47,8 @@ CREATE TABLE IF NOT EXISTS `elementary`.`attached_file` (
   `file_sn` INT UNSIGNED NOT NULL,
   `name` VARCHAR(255) NOT NULL,
   `size` INT UNSIGNED NOT NULL,
+  `created_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `attached_file_UNIQUE` (`attached_file_id`,`file_sn`),
   CONSTRAINT `fk_attached_file_post`
@@ -54,4 +57,3 @@ CREATE TABLE IF NOT EXISTS `elementary`.`attached_file` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
