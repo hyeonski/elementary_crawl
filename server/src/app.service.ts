@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PostType } from './entities/post-type.entity';
@@ -21,17 +21,20 @@ export class AppService {
 
   async getPostsByPostType(type: PostType): Promise<Post[]> {
     if (type) {
-      return await this.postRepository.find({ where: { postType: type } });
+      return await this.postRepository.find({
+        where: { postType: type },
+        order: { uploadAt: 'DESC' },
+      });
     }
-    return await this.postRepository.find();
+    return await this.postRepository.find({
+      order: { uploadAt: 'DESC' },
+    });
   }
 
-  getPostListViewName(type: string): string {
-    if (!type) return 'index';
-    const types = ['notice', 'parent_letter', 'school_meal'];
-    if (types.includes(type)) {
-      return type;
-    }
-    throw new NotFoundException();
+  async getPostById(id: number): Promise<Post> {
+    return await this.postRepository.findOne({
+      where: { id },
+      relations: ['attachedFiles'],
+    });
   }
 }

@@ -1,4 +1,10 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Post } from './post.entity';
 
 @Entity('attached_file')
@@ -7,6 +13,7 @@ export class AttachedFile {
   id: number;
 
   @ManyToOne(() => Post, (post) => post.attachedFiles)
+  @JoinColumn({ name: 'post_id', referencedColumnName: 'id' })
   post: Post;
 
   @Column({ name: 'attached_file_id', type: 'varchar', length: 30 })

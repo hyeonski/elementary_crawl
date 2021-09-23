@@ -1,18 +1,9 @@
-import { Controller, Get, Query, Render, Res } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Param, Query, Render } from '@nestjs/common';
 import { AppService } from './app.service';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
-
-  // @Get()
-  // async getPostList(@Query('type') type: string, @Res() res: Response) {
-  //   const view = await this.appService.getPostListViewName(type);
-  //   const postType = await this.appService.getPostTypeByName(type);
-  //   const posts = await this.appService.getPostsByPostType(postType);
-  //   res.render(view, { count: posts.length, posts });
-  // }
 
   @Get()
   @Render('list')
@@ -20,5 +11,12 @@ export class AppController {
     const postType = await this.appService.getPostTypeByName(type);
     const posts = await this.appService.getPostsByPostType(postType);
     return { type, count: posts.length, posts };
+  }
+
+  @Get('/post/:id')
+  @Render('post')
+  async getPost(@Param('id') id: number) {
+    const post = await this.appService.getPostById(id);
+    return post;
   }
 }
