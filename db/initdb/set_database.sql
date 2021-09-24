@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS `elementary`.`post` (
   `title` VARCHAR(100) NOT NULL,
   `content` MEDIUMTEXT NULL,
   `post_type_id` INT NOT NULL,
-  `updated_at` DATETIME NOT NULL,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   CONSTRAINT `fk_post_post_type1`
     FOREIGN KEY (`post_type_id`)
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `elementary`.`attached_file` (
   `file_sn` INT UNSIGNED NOT NULL,
   `name` VARCHAR(255) NOT NULL,
   `size` INT UNSIGNED NOT NULL,
-  `updated_at` DATETIME NOT NULL,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `attached_file_UNIQUE` (`attached_file_id`,`file_sn`),
   CONSTRAINT `fk_attached_file_post`
