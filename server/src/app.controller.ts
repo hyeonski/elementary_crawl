@@ -26,7 +26,10 @@ export class AppController {
   @Get('/post/:id')
   @Render('post')
   async getPost(@Param('id') id: number) {
-    const post = await this.appService.getPostById(id);
+    const post: any = await this.appService.getPostById(id);
+    for (const file of post.attachedFiles) {
+      file.size = this.appService.convertFileSizeToString(file.size);
+    }
     return post;
   }
 }

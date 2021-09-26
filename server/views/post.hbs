@@ -11,10 +11,19 @@
     />
     <style>
       body { margin: auto; width: 1080px; } main { margin-top: 50px; }
+      .file_button_wrap {
+        margin: 5px;
+      }
     </style>
   </head>
 
   <body>
+    {{#isEqual title undefined}}
+      <script>
+        alert('찾을 수 없는 게시물입니다.') window.history.back()
+      </script>
+    {{/isEqual}}
+
     <header>
       <div class='page-header'>
         <h1>서울서이초등학교</h1>
@@ -22,7 +31,9 @@
       <ul class='nav nav-pills'>
         <li role='presentation'><a href='/'>전체</a></li>
         <li role='presentation'><a href='/?type=notice'>공지사항</a></li>
-        <li role='presentation'><a href='/?type=parent_letter'>가정통신문</a></li>
+        <li role='presentation'><a
+            href='/?type=parent_letter'
+          >가정통신문</a></li>
         <li role='presentation'><a href='/?type=school_meal'>급식게시판</a></li>
         <li role='presentation'><a href='/'>급식메뉴</a></li>
       </ul>
@@ -30,13 +41,30 @@
     <main>
       <div class='panel panel-default'>
         <div class='panel-heading'>
-          <h3 class='panel-title'>{{title}}  <small>by {{author}}</small></h3>
+          <h3 class='panel-title'>{{title}} <small>by {{author}}</small></h3>
         </div>
         <div class='panel-body'>
-          등록일: {{uploadAt}}
-          <hr>
+          등록일:
+          {{uploadAt}}
+          <hr />
           <div class='content'>
             {{{content}}}
+          </div>
+          <hr />
+          <div class='file_box'>
+            <h4>첨부파일 <small>클릭 시 다운로드합니다.</small></h4>
+            {{#each attachedFiles}}
+              <div class='file_button_wrap'>
+                <button
+                  onclick="location.href='https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={{attachedFileId}}&fileSn={{fileSn}}'"
+                  type='button'
+                  class='btn btn-default'
+                >
+                  {{name}}
+                  <small>({{size}})</small>
+                </button>
+              </div>
+            {{/each}}
           </div>
         </div>
       </div>
