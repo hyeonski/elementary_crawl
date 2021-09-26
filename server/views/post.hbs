@@ -22,9 +22,7 @@
       <ul class='nav nav-pills'>
         <li role='presentation'><a href='/'>전체</a></li>
         <li role='presentation'><a href='/?type=notice'>공지사항</a></li>
-        <li role='presentation'><a
-            href='/?type=parent_letter'
-          >가정통신문</a></li>
+        <li role='presentation'><a href='/?type=parent_letter'>가정통신문</a></li>
         <li role='presentation'><a href='/?type=school_meal'>급식게시판</a></li>
         <li role='presentation'><a href='/'>급식메뉴</a></li>
       </ul>
@@ -37,7 +35,9 @@
         <div class='panel-body'>
           등록일: {{uploadAt}}
           <hr>
-          {{{content}}}
+          <div class='content'>
+            {{{content}}}
+          </div>
         </div>
       </div>
 

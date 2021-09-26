@@ -10,7 +10,17 @@ export class AppController {
   async getPostList(@Query('type') type: string) {
     const postType = await this.appService.getPostTypeByName(type);
     const posts = await this.appService.getPostsByPostType(postType);
-    return { type, count: posts.length, posts };
+
+    let lastUpdate: string;
+    if (posts.length > 0) {
+      lastUpdate = `${posts[0].updatedAt.toLocaleDateString()} ${posts[0].updatedAt.toLocaleTimeString()}`;
+    }
+    return {
+      type,
+      lastUpdate,
+      count: posts ? posts.length : 0,
+      posts,
+    };
   }
 
   @Get('/post/:id')

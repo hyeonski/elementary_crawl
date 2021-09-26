@@ -26,6 +26,9 @@ export class Post {
   @Column({ name: 'content', type: 'text', nullable: true })
   content: string;
 
+  @Column({ name: 'updated_at', type: 'timestamp' })
+  updatedAt: Date;
+
   @ManyToOne(() => PostType)
   @JoinColumn({ name: 'post_type_id', referencedColumnName: 'id' })
   postType: PostType;

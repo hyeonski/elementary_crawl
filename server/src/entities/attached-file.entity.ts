@@ -27,4 +27,7 @@ export class AttachedFile {
 
   @Column({ name: 'size', type: 'int', unsigned: true })
   size: number;
+
+  @Column({ name: 'updated_at', type: 'timestamp' })
+  updatedAt: Date;
 }
