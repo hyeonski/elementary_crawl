@@ -79,9 +79,10 @@ def crawlBoard(boardUrl, postTypeId, dbConnection):
                 while fileDownCnt < int(fileListCnt):
                     fileUrl = f'https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={atchFileId}&fileSn={str(fileSn)}'
                     fileResponse = myGet(fileUrl, cookies, headers={ 'User-Agent': userAgent })
-                    fileSn += 1
                     if 'Content-Disposition' not in fileResponse.headers:
+                        fileSn += 1
                         continue
+
                     fileDownCnt += 1
                     fileName = dbConnection.escape_string(unquote(fileResponse.headers['Content-Disposition'].split('filename=')[1]))
                     fileSize = fileResponse.headers['Content-Length']
@@ -94,6 +95,9 @@ def crawlBoard(boardUrl, postTypeId, dbConnection):
                     else:
                         cursor.execute(f"UPDATE attached_file SET name='{fileName}', size='{fileSize}' WHERE attached_file_id='{atchFileId}' AND file_sn='{fileSn}'")
                     dbConnection.commit()
+
+                    fileSn += 1
+
 
         formData['nttId'] = ''
         formData['ifNttId'] = ''
