@@ -62,7 +62,8 @@ def get_file_list(post_id, file_div: Tag, cookies: dict) -> List[AttachedFile]:
     while file_down_cnt < int(file_list_cnt):
         file_sn += 1
         file_url = f'https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={atch_file_id}&fileSn={str(file_sn)}'
-        file_response = my_get(file_url, cookies, headers={ 'User-Agent': user_agent })
+        file_response = my_get(file_url, cookies, headers={
+                               'User-Agent': user_agent})
         if 'Content-Disposition' not in file_response.headers:
             continue
 
@@ -143,5 +144,5 @@ if __name__ == '__main__':
         ('https://seo2.sen.es.kr/113876/subMenu.do', 'school_meal'),
     ]
 
-    with Pool(processes=4) as pool:
+    with Pool(processes=len(boards)) as pool:
         pool.starmap(worker, boards)
