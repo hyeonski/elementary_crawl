@@ -1,118 +1,130 @@
-import requests
-from bs4 import BeautifulSoup
 import base64
-import datetime
 from urllib.parse import unquote
 from multiprocessing import Process
-from utils import myGet, myPost, printErrorEndl
+import requests
+from bs4 import BeautifulSoup
 import pymysql
+from utils import my_get, my_post
 
-PYMYSQL_DUPLICATE_ERROR = 1062
 
-
-def getFormDataFromInputs(soup, formData):
+def get_form_data_from_inputs(soup, form_data):
     inputs = soup.select('input[type=hidden]')
     for input in inputs:
         value = input.get('value')
-        formData[input.get('name')] = value if value != None else ''
+        form_data[input.get('name')] = value if value != None else ''
 
 
-def crawlBoard(boardUrl, postTypeId, dbConnection):
+def crawlBoard(board_url, post_type_id, db_connection):
     # Get Session
-    cookies = dict(requests.get('https://seo2.sen.es.kr/', allow_redirects=False).cookies)
-    userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36'
+    cookies = dict(requests.get('https://seo2.sen.es.kr/',
+                   allow_redirects=False).cookies)
+    user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36'
 
-    formData = {
+    form_data = {
         'bbsId': '',
         'bbsTyCode': '',
         'customRecordCountPerPage': '',
         'pageIndex': '',
     }
-    getFormDataFromInputs(BeautifulSoup(myGet(boardUrl, cookies=cookies).text, 'html.parser'), formData)
+    get_form_data_from_inputs(BeautifulSoup(
+        my_get(board_url, cookies=cookies).text, 'html.parser'), form_data)
 
-    formData['customRecordCountPerPage'] = 1000 # 리스트 한 페이지 당 게시글 수 조정
+    form_data['customRecordCountPerPage'] = 1000  # 리스트 한 페이지 당 게시글 수 조정
     while True:
         # Get Post List
-        listResponse = myPost('https://seo2.sen.es.kr/dggb/module/board/selectBoardListAjax.do', cookies=cookies, data=formData)
-        soup = BeautifulSoup(listResponse.text, 'html.parser')
+        list_response = my_post(
+            'https://seo2.sen.es.kr/dggb/module/board/selectBoardListAjax.do', cookies=cookies, data=form_data)
+        soup = BeautifulSoup(list_response.text, 'html.parser')
 
         posts = soup.select('tbody > tr')
         for post in posts:
             if len(post.find_all('td')) == 1:
                 return
             # 첫 페이지 제외 공지는 건너뛰도록
-            if formData['pageIndex'] != 1 and post.td.span != None and post.td.span.text == '공지':
+            if form_data['pageIndex'] != 1 and post.td.span != None and post.td.span.text == '공지':
                 continue
 
             # Get Post Detail
-            formData['nttId'] = post.select_one('td > a').get('onclick').replace(f"fnView('{formData['bbsId']}', '", '').replace("');", '') # onclick 함수의 인자에서 nttId 값 추출
-            formData['ifNttId'] = base64.b64encode(formData['nttId'].encode('ascii')).decode('ascii')
-            postResponse = myPost('https://seo2.sen.es.kr/dggb/module/board/selectBoardDetailAjax.do', cookies=cookies, data=formData)
-            soup = BeautifulSoup(postResponse.text, 'html.parser')
+            form_data['nttId'] = post.select_one('td > a').get('onclick').replace(
+                f"fnView('{form_data['bbsId']}', '", '').replace("');", '')  # onclick 함수의 인자에서 nttId 값 추출
+            form_data['ifNttId'] = base64.b64encode(
+                form_data['nttId'].encode('ascii')).decode('ascii')
+            post_response = my_post(
+                'https://seo2.sen.es.kr/dggb/module/board/selectBoardDetailAjax.do', cookies=cookies, data=form_data)
+            soup = BeautifulSoup(post_response.text, 'html.parser')
 
-            elemsIntable = soup.select('tbody > tr > td > div')
+            elems_in_table = soup.select('tbody > tr > td > div')
 
-            postId = formData['nttId']
-            author = elemsIntable[0].text.strip()
-            uploadAt = elemsIntable[1].text.strip()
-            title = dbConnection.escape_string(elemsIntable[2].text.strip())
-            content = dbConnection.escape_string(str(elemsIntable[3]).lstrip('<div class="content">').rstrip('</div>'))
-            print(f'{postId} {author} {uploadAt} {title}')
-            
+            post_id = form_data['nttId']
+            author = elems_in_table[0].text.strip()
+            upload_at = elems_in_table[1].text.strip()
+            title = db_connection.escape_string(elems_in_table[2].text.strip())
+            content = db_connection.escape_string(
+                str(elems_in_table[3]).lstrip('<div class="content">').rstrip('</div>'))
+            print(f'{post_id} {author} {upload_at} {title}')
+
             # Insert Post or Update Post
-            cursor = dbConnection.cursor()
-            cursor.execute(f"SELECT id FROM post WHERE id='{postId}'")
+            cursor = db_connection.cursor()
+            cursor.execute(f"SELECT id FROM post WHERE id='{post_id}'")
             if cursor.fetchone() == None:
-                cursor.execute(f"INSERT INTO post (id, post_type_id, author, upload_at, title, content) VALUES ('{postId}', '{postTypeId}', '{author}', '{uploadAt}', '{title}', '{content}')")
+                cursor.execute(
+                    f"INSERT INTO post (id, post_type_id, author, upload_at, title, content) VALUES ('{post_id}', '{post_type_id}', '{author}', '{upload_at}', '{title}', '{content}')")
             else:
-                cursor.execute(f"UPDATE post SET author='{author}', upload_at='{uploadAt}', title='{title}', content='{content}' WHERE id='{postId}'")
-            dbConnection.commit()
+                cursor.execute(
+                    f"UPDATE post SET author='{author}', upload_at='{upload_at}', title='{title}', content='{content}' WHERE id='{post_id}'")
+            db_connection.commit()
 
             # Get Attached Files
-            fileDiv = soup.select_one('div#file_div')
-            if fileDiv != None:
-                atchFileId = fileDiv.select_one('input[name=atchFileId]').get('value')
-                fileListCnt = fileDiv.select_one('input[name=fileListCnt]').get('value')
+            file_div = soup.select_one('div#file_div')
+            if file_div != None:
+                atch_file_id = file_div.select_one(
+                    'input[name=atchFileId]').get('value')
+                file_list_cnt = file_div.select_one(
+                    'input[name=fileListCnt]').get('value')
 
-                fileDownCnt = 0
-                fileSn = 0
-                while fileDownCnt < int(fileListCnt):
-                    fileUrl = f'https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={atchFileId}&fileSn={str(fileSn)}'
-                    fileResponse = myGet(fileUrl, cookies, headers={ 'User-Agent': userAgent })
-                    if 'Content-Disposition' not in fileResponse.headers:
-                        fileSn += 1
+                file_down_cnt = 0
+                file_sn = 0
+                while file_down_cnt < int(file_list_cnt):
+                    file_url = f'https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={atch_file_id}&fileSn={str(file_sn)}'
+                    file_response = my_get(file_url, cookies, headers={
+                        'User-Agent': user_agent})
+                    if 'Content-Disposition' not in file_response.headers:
+                        file_sn += 1
                         continue
 
-                    fileDownCnt += 1
-                    fileName = dbConnection.escape_string(unquote(fileResponse.headers['Content-Disposition'].split('filename=')[1]))
-                    fileSize = fileResponse.headers['Content-Length']
+                    file_down_cnt += 1
+                    file_name = db_connection.escape_string(
+                        unquote(file_response.headers['Content-Disposition'].split('filename=')[1]))
+                    file_size = file_response.headers['Content-Length']
 
                     # Insert or Update File
-                    cursor = dbConnection.cursor()
-                    cursor.execute(f"SELECT id FROM attached_file WHERE attached_file_id='{atchFileId}' AND file_sn='{fileSn}'")
+                    cursor = db_connection.cursor()
+                    cursor.execute(
+                        f"SELECT id FROM attached_file WHERE attached_file_id='{atch_file_id}' AND file_sn='{file_sn}'")
                     if cursor.fetchone() == None:
-                        cursor.execute(f"INSERT INTO attached_file (post_id, attached_file_id, file_sn, name, size) VALUES ('{postId}', '{atchFileId}', '{fileSn}', '{fileName}', '{fileSize}')")
+                        cursor.execute(
+                            f"INSERT INTO attached_file (post_id, attached_file_id, file_sn, name, size) VALUES ('{post_id}', '{atch_file_id}', '{file_sn}', '{file_name}', '{file_size}')")
                     else:
-                        cursor.execute(f"UPDATE attached_file SET name='{fileName}', size='{fileSize}' WHERE attached_file_id='{atchFileId}' AND file_sn='{fileSn}'")
-                    dbConnection.commit()
+                        cursor.execute(
+                            f"UPDATE attached_file SET name='{file_name}', size='{file_size}' WHERE attached_file_id='{atch_file_id}' AND file_sn='{file_sn}'")
+                    db_connection.commit()
 
-                    fileSn += 1
+                    file_sn += 1
+
+        form_data['nttId'] = ''
+        form_data['ifNttId'] = ''
+        form_data['pageIndex'] = str(int(form_data['pageIndex']) + 1)
 
 
-        formData['nttId'] = ''
-        formData['ifNttId'] = ''
-        formData['pageIndex'] = str(int(formData['pageIndex']) + 1)
-
-
-
-def worker(boardUrl, postTypeName):
-    dbConnection = pymysql.connect(host='localhost', user='root', password='1234', db='elementary', charset='utf8')
-    cursor = dbConnection.cursor()
+def worker(board_url, postTypeName):
+    db_connection = pymysql.connect(
+        host='localhost', user='root', password='1234', db='elementary', charset='utf8')
+    cursor = db_connection.cursor()
     cursor.execute(f"SELECT id FROM post_type WHERE name='{postTypeName}'")
-    postTypeId = cursor.fetchone()[0]
+    post_type_id = cursor.fetchone()[0]
 
-    crawlBoard(boardUrl, postTypeId, dbConnection)
-    dbConnection.close()
+    crawlBoard(board_url, post_type_id, db_connection)
+    db_connection.close()
 
 
 if __name__ == '__main__':
