@@ -1,9 +1,9 @@
 import base64
 from urllib.parse import unquote
-from multiprocessing import Process, Pool
+from multiprocessing import Pool
 from typing import List
 import requests
-from bs4.element import ResultSet, Tag
+from bs4.element import Comment, ResultSet, Tag
 from bs4 import BeautifulSoup
 import pymysql
 from database import Post, AttachedFile, store_post_data, store_file_data
@@ -38,14 +38,21 @@ def get_post_detail_soup(post: Tag, form_data: dict, cookies: dict) -> Beautiful
 
 def get_post_data(post_type_id, soup: BeautifulSoup, form_data: dict) -> Post:
     elems_in_table = soup.select('tbody > tr > td > div')
+
+    content_div = elems_in_table[3]
+    content_list = content_div.p.contents if content_div.p.html == None else content_div.p.body.contents
+
+    def stringify_tag_except_comments(tag: Tag):
+        return str(tag) if not isinstance(tag, Comment) else ''
+    content = ''.join(map(stringify_tag_except_comments, content_list))
+
     return Post(
         post_type_id=post_type_id,
         post_id=form_data['nttId'],
         author=elems_in_table[0].text.strip(),
         upload_at=elems_in_table[1].text.strip(),
         title=elems_in_table[2].text.strip(),
-        content=str(elems_in_table[3]).lstrip(
-            '<div class="content">').rstrip('</div>'),
+        content=content,
     )
 
 
