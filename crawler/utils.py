@@ -1,12 +1,12 @@
-import sys
-import time
-import datetime
+from sys import stderr
+from time import sleep
+from datetime import datetime
 import requests
 
 
 def print_error_endl(error):
-    sys.stderr.write(f"[{datetime.datetime.now()}] Error: {error}\n")
-    sys.stderr.flush()
+    stderr.write(f"[{datetime.now()}] Error: {error}\n")
+    stderr.flush()
 
 
 def my_post(url, cookies, data, headers=None):
@@ -17,10 +17,10 @@ def my_post(url, cookies, data, headers=None):
             if response.status_code == 200:
                 return response
             print_error_endl(response.status_code)
-            time.sleep(5)
+            sleep(5)
         except Exception as e:
             print_error_endl(e)
-            time.sleep(10)
+            sleep(10)
 
 
 def my_get(url, cookies, headers=None):
@@ -30,7 +30,7 @@ def my_get(url, cookies, headers=None):
             if response.status_code == 200:
                 return response
             print_error_endl(response.status_code)
-            time.sleep(5)
+            sleep(5)
         except Exception as e:
             print_error_endl(e)
-            time.sleep(10)
+            sleep(10)
