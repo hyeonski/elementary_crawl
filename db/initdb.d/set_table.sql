@@ -2,38 +2,17 @@ CREATE SCHEMA IF NOT EXISTS `elementary`;
 USE `elementary` ;
 
 -- -----------------------------------------------------
--- Table `elementary`.`post_type`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `elementary`.`post_type` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(20) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `type_UNIQUE` (`name`))
-ENGINE = InnoDB;
-
-INSERT INTO `elementary`.`post_type` (`name`) VALUES
-  ('notice'),
-  ('parent_letter'),
-  ('school_meal');
-
-
--- -----------------------------------------------------
 -- Table `elementary`.`post`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `elementary`.`post` (
   `id` INT NOT NULL,
+  `post_type` VARCHAR(30) NOT NULL,
   `author` VARCHAR(30) NOT NULL,
   `upload_at` DATE NOT NULL,
   `title` VARCHAR(100) NOT NULL,
   `content` MEDIUMTEXT NULL,
-  `post_type_id` INT NOT NULL,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_post_post_type1`
-    FOREIGN KEY (`post_type_id`)
-    REFERENCES `elementary`.`post_type` (`id`)
-    ON DELETE RESTRICT
-    ON UPDATE CASCADE)
+  `updated_at` TIMESTAMP NOT NULL DEFAULT current_timestamp ON UPDATE current_timestamp,
+  PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
@@ -46,7 +25,9 @@ CREATE TABLE IF NOT EXISTS `elementary`.`attached_file` (
   `file_sn` INT UNSIGNED NOT NULL,
   `name` VARCHAR(255) NOT NULL,
   `size` INT UNSIGNED NOT NULL,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `preview_url` VARCHAR(255) NOT NULL,
+  `download_url` VARCHAR(255) NOT NULL,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT current_timestamp ON UPDATE current_timestamp,
   PRIMARY KEY (`id`),
   UNIQUE KEY `attached_file_UNIQUE` (`attached_file_id`,`file_sn`),
   CONSTRAINT `fk_attached_file_post`
@@ -54,4 +35,18 @@ CREATE TABLE IF NOT EXISTS `elementary`.`attached_file` (
     REFERENCES `elementary`.`post` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Table `elementary`.`school_meal_menu`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `elementary`.`school_meal_menu` (
+  `id` INT NOT NULL,
+  `type` VARCHAR(30) NOT NULL,
+  `upload_at` DATE NOT NULL,
+  `title` VARCHAR(100) NOT NULL,
+  `menu` VARCHAR(100) NOT NULL,
+  `image_url` VARCHAR(255) NULL,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT current_timestamp ON UPDATE current_timestamp,
+  PRIMARY KEY (`id`))
 ENGINE = InnoDB;
