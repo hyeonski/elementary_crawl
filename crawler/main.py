@@ -36,7 +36,7 @@ def get_post_detail_soup(post: Tag, form_data: dict, cookies: dict) -> Beautiful
     return BeautifulSoup(post_response.text, 'html.parser')
 
 
-def get_post_data(post_type_id, soup: BeautifulSoup, form_data: dict) -> Post:
+def get_post_data(post_type, soup: BeautifulSoup, form_data: dict) -> Post:
     elems_in_table = soup.select('tbody > tr > td > div')
 
     content_div = elems_in_table[3]
@@ -47,7 +47,7 @@ def get_post_data(post_type_id, soup: BeautifulSoup, form_data: dict) -> Post:
     content = ''.join(map(stringify_tag_except_comments, content_list))
 
     return Post(
-        post_type_id=post_type_id,
+        post_type=post_type,
         post_id=form_data['nttId'],
         author=elems_in_table[0].text.strip(),
         upload_at=elems_in_table[1].text.strip(),
@@ -69,8 +69,7 @@ def get_file_list(post_id, file_div: Tag, cookies: dict) -> List[AttachedFile]:
     while file_down_cnt < int(file_list_cnt):
         file_sn += 1
         file_url = f'https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={atch_file_id}&fileSn={str(file_sn)}'
-        file_response = my_get(file_url, cookies, headers={
-                               'User-Agent': user_agent})
+        file_response = my_get(file_url, cookies, headers={ 'User-Agent': user_agent })
         if 'Content-Disposition' not in file_response.headers:
             continue
 
@@ -87,7 +86,7 @@ def get_file_list(post_id, file_div: Tag, cookies: dict) -> List[AttachedFile]:
     return file_list
 
 
-def crawlBoard(board_url: str, post_type_id: int, db_connection: pymysql.Connection):
+def crawl_board(board_url: str, post_type: str, db_connection: pymysql.Connection):
     # Get Session
     cookies = dict(requests.get('https://seo2.sen.es.kr/',
                    allow_redirects=False).cookies)
@@ -107,7 +106,7 @@ def crawlBoard(board_url: str, post_type_id: int, db_connection: pymysql.Connect
         posts = get_post_list_rows(cookies, form_data)
 
         for post in posts:
-            # 컬럼이 하나인 경우 해당
+            # 컬럼이 하나인 경우 조회된 내용 없음
             if len(post.find_all('td')) == 1:
                 return
             # 첫 페이지 제외 공지는 건너뛰도록
@@ -115,7 +114,7 @@ def crawlBoard(board_url: str, post_type_id: int, db_connection: pymysql.Connect
                 continue
 
             soup = get_post_detail_soup(post, form_data, cookies)
-            post_data = get_post_data(post_type_id, soup, form_data)
+            post_data = get_post_data(post_type, soup, form_data)
             store_post_data(db_connection, post_data)
 
             print(
@@ -133,14 +132,11 @@ def crawlBoard(board_url: str, post_type_id: int, db_connection: pymysql.Connect
         form_data['pageIndex'] = str(int(form_data['pageIndex']) + 1)
 
 
-def worker(board_url, postTypeName):
+def worker(board_url, post_type):
     db_connection = pymysql.connect(
         host='localhost', user='root', password='1234', db='elementary', charset='utf8')
-    cursor = db_connection.cursor()
-    cursor.execute(f"SELECT id FROM post_type WHERE name='{postTypeName}'")
-    post_type_id = cursor.fetchone()[0]
 
-    crawlBoard(board_url, post_type_id, db_connection)
+    crawl_board(board_url, post_type, db_connection)
     db_connection.close()
 
 
