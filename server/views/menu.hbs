@@ -16,7 +16,7 @@
   </head>
 
   <body>
-    {{#isEqual title undefined}}
+    {{#isEqual uploadAt undefined}}
       <script>
         alert('찾을 수 없는 게시물입니다.') window.history.back()
       </script>
@@ -32,38 +32,25 @@
             href='/?type=parent_letter'
           >가정통신문</a></li>
         <li role='presentation'><a href='/?type=school_meal'>급식게시판</a></li>
-        <li role='presentation'><a href='/?type=school_meal_menu'>급식메뉴</a></li>
+        <li role='presentation'><a
+            href='/?type=school_meal_menu'
+          >급식메뉴</a></li>
       </ul>
     </header>
     <main>
       <div class='panel panel-default'>
         <div class='panel-heading'>
-          <h3 class='panel-title'>{{title}} <small>by {{author}}</small></h3>
+          <h3 class='panel-title'>{{uploadAt}} [{{type}}]</h3>
         </div>
         <div class='panel-body'>
-          등록일:
-          {{uploadAt}}
-          <hr />
           <div class='content'>
-            {{{content}}}
-          </div>
-          {{#if attachedFiles/length}}
+            {{menu}}
+            {{#if imageUrl}}
             <hr />
-            <div class='file_box'>
-              <h4>첨부파일 <small>클릭 시 다운로드합니다.</small></h4>
-              {{#each attachedFiles}}
-                <div class='file_button_wrap'>
-                  <button
-                    onclick="location.href='https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={{attachedFileId}}&fileSn={{fileSn}}'"
-                    type='button'
-                    class='btn btn-default'
-                  >
-                    {{name}}
-                    <small>({{size}})</small>
-                  </button>
-                </div>
-              {{/each}}
+            <h5>식단 이미지</h5>
+            <img src="{{imageUrl}}" alt="서울서이초등학교 {{uploadAt}} {{type}} 급식 이미지"/>
             {{/if}}
+          </div>
           </div>
         </div>
       </div>

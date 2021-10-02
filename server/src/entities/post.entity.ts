@@ -23,7 +23,7 @@ export class Post {
   @Column({ name: 'title', type: 'varchar', length: 100 })
   title: string;
 
-  @Column({ name: 'content', type: 'text', nullable: true })
+  @Column({ name: 'content', type: 'mediumtext', nullable: true })
   content: string;
 
   @Column({ name: 'updated_at', type: 'timestamp' })

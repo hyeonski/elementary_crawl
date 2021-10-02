@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityNotFoundError, Repository } from 'typeorm';
 import { PostType } from './entities/post-type.entity';
 import { Post } from './entities/post.entity';
+import { SchoolMealMenu } from './entities/school-meal-menu.entity';
 
 @Injectable()
 export class AppService {
@@ -10,32 +11,49 @@ export class AppService {
     @InjectRepository(Post) private readonly postRepository: Repository<Post>,
     @InjectRepository(PostType)
     private readonly postTypeRepository: Repository<PostType>,
+    @InjectRepository(SchoolMealMenu)
+    private readonly schoolMealMenuRepository: Repository<SchoolMealMenu>,
   ) {}
-  getHello(): string {
-    return 'Hello World!';
-  }
-
   async getPostTypeByName(type: string): Promise<PostType> {
     return await this.postTypeRepository.findOne({ where: { name: type } });
   }
 
   async getPostsByPostType(type: PostType): Promise<Post[]> {
-    if (type) {
-      return await this.postRepository.find({
-        where: { postType: type },
-        order: { uploadAt: 'DESC' },
-      });
-    }
     return await this.postRepository.find({
+      where: { postType: type },
       order: { uploadAt: 'DESC' },
     });
   }
 
   async getPostById(id: number): Promise<Post> {
-    return await this.postRepository.findOne({
-      where: { id },
-      relations: ['attachedFiles'],
+    try {
+      return await this.postRepository.findOneOrFail({
+        where: { id },
+        relations: ['attachedFiles'],
+      });
+    } catch (e) {
+      if (e instanceof EntityNotFoundError) {
+        throw new NotFoundException();
+      } else throw e;
+    }
+  }
+
+  async getSchoolMealMenus(): Promise<SchoolMealMenu[]> {
+    return await this.schoolMealMenuRepository.find({
+      order: { uploadAt: 'DESC' },
     });
+  }
+
+  async getSchoolMealMenuById(id: number): Promise<SchoolMealMenu> {
+    try {
+      return await this.schoolMealMenuRepository.findOneOrFail({
+        where: { id },
+      });
+    } catch (e) {
+      if (e instanceof EntityNotFoundError) {
+        throw new NotFoundException();
+      } else throw e;
+    }
   }
 
   convertFileSizeToString(size: number): string {
