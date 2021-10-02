@@ -128,6 +128,8 @@ def crawl_board(board_url: str, post_type_id, db_connection: pymysql.Connection)
             file_div = soup.select_one('div#file_div')
             if file_div != None:
                 file_list = get_file_list(post_data.post_id, file_div, cookies)
+                cursor = db_connection.cursor()
+                cursor.execute(f"DELETE FROM attached_file WHERE attached_file_id='{file_list[0].attached_file_id}'")
                 for file in file_list:
                     store_file_data(db_connection, file)
 

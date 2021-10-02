@@ -66,8 +66,6 @@ def store_file_data(db_connection: Connection, file: AttachedFile):
 
     cursor: Cursor = db_connection.cursor()
     cursor.execute(
-        f"DELETE FROM attached_file WHERE attached_file_id='{attached_file_id}' AND file_sn='{file_sn}'")
-    cursor.execute(
         f"INSERT INTO attached_file (post_id, attached_file_id, file_sn, name, size, preview_url, download_url) VALUES ('{post_id}', '{attached_file_id}', '{file_sn}', '{name}', '{size}', '{preview_url}', '{download_url}')")
     db_connection.commit()
 
