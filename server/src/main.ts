@@ -14,6 +14,7 @@ async function bootstrap() {
   hbs.registerHelper('isEqual', (lhs: any, rhs: any, options) =>
     lhs === rhs ? options.fn() : options.inverse(),
   );
+  hbs.registerPartials(join(__dirname, '..', 'views/partials'));
 
   app.setViewEngine('hbs');
   app.useGlobalFilters(new HttpExceptionFilter());

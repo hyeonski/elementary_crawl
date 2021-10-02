@@ -1,0 +1,11 @@
+<header>
+  <div class='page-header'>
+    <h1>서울서이초등학교</h1>
+  </div>
+  <ul class='nav nav-pills'>
+    <li role='presentation' {{#isEqual type 'notice'}} class='active' {{/isEqual}}><a href='/?type=notice'>공지사항</a></li>
+    <li role='presentation' {{#isEqual type 'parent_letter'}} class='active' {{/isEqual}}><a href='/?type=parent_letter'>가정통신문</a></li>
+    <li role='presentation' {{#isEqual type 'school_meal'}} class='active' {{/isEqual}}><a href='/?type=school_meal'>급식게시판</a></li>
+    <li role='presentation' {{#isEqual type 'school_meal_menu'}} class='active' {{/isEqual}}><a href='/?type=school_meal_menu'>급식메뉴</a></li>
+  </ul>
+</header>
