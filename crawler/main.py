@@ -39,7 +39,7 @@ def get_post_detail_soup(post: Tag, form_data: dict, cookies: dict) -> Beautiful
     return BeautifulSoup(post_response.text, 'html.parser')
 
 
-def get_post_data(post_type, soup: BeautifulSoup, form_data: dict) -> Post:
+def get_post_data(post_type_id, soup: BeautifulSoup, form_data: dict) -> Post:
     elems_in_table = soup.select('tbody > tr > td > div')
 
     content_div = elems_in_table[3]
@@ -50,7 +50,7 @@ def get_post_data(post_type, soup: BeautifulSoup, form_data: dict) -> Post:
     content = ''.join(map(stringify_tag_except_comments, content_list))
 
     return Post(
-        post_type=post_type,
+        post_type_id=post_type_id,
         post_id=form_data['nttId'],
         author=elems_in_table[0].text.strip(),
         upload_at=elems_in_table[1].text.strip(),
@@ -90,7 +90,7 @@ def get_file_list(post_id, file_div: Tag, cookies: dict) -> List[AttachedFile]:
     return file_list
 
 
-def crawl_board(board_url: str, post_type: str, db_connection: pymysql.Connection):
+def crawl_board(board_url: str, post_type_id, db_connection: pymysql.Connection):
     # Get Session
     cookies = dict(requests.get('https://seo2.sen.es.kr/',
                    allow_redirects=False).cookies)
@@ -118,7 +118,7 @@ def crawl_board(board_url: str, post_type: str, db_connection: pymysql.Connectio
                 continue
 
             soup = get_post_detail_soup(post, form_data, cookies)
-            post_data = get_post_data(post_type, soup, form_data)
+            post_data = get_post_data(post_type_id, soup, form_data)
             store_post_data(db_connection, post_data)
 
             print(
@@ -190,11 +190,14 @@ def crawl_school_meal_menu(board_url: str, db_connection: pymysql.Connection):
         date += relativedelta(months=1)
 
 
-def board_worker(board_url, post_type):
+def board_worker(board_url, post_type_name):
     db_connection = pymysql.connect(
         host='localhost', user='root', password='1234', db='elementary', charset='utf8')
+    cursor = db_connection.cursor()
+    cursor.execute(f"SELECT id FROM post_type WHERE name='{post_type_name}'")
+    post_type_id = cursor.fetchone()[0]
 
-    crawl_board(board_url, post_type, db_connection)
+    crawl_board(board_url, post_type_id, db_connection)
     db_connection.close()
 
 
