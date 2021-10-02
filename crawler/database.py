@@ -29,6 +29,19 @@ class AttachedFile:
         return iter([self.post_id, self.attached_file_id, self.file_sn, self.name, self.size, self.preview_url, self.download_url])
 
 
+class SchoolMealMenu:
+    def __init__(self, id, type, upload_at, title, menu, image_url):
+        self.id = id
+        self.type = type
+        self.upload_at = upload_at
+        self.title = title
+        self.menu = menu
+        self.image_url = image_url
+
+    def __iter__(self):
+        return iter([self.id, self.type, self.upload_at, self.title, self.menu, self.image_url])
+
+
 def store_post_data(db_connection: Connection, post_data: Post):
     post_type, post_id, author, upload_at, title, content = post_data
     title = db_connection.escape_string(title)
@@ -60,4 +73,28 @@ def store_file_data(db_connection: Connection, file: AttachedFile):
     else:
         cursor.execute(
             f"UPDATE attached_file SET name='{name}', size='{size}' WHERE attached_file_id='{attached_file_id}' AND file_sn='{file_sn}'")
+    db_connection.commit()
+
+
+def store_school_meal_menu(school_meal_menu: SchoolMealMenu, db_connection: Connection):
+    id, type, upload_at, title, menu, image_url = school_meal_menu
+    menu = db_connection.escape_string(menu)
+    image_url = db_connection.escape_string(image_url) if image_url else None
+
+    cursor: Cursor = db_connection.cursor()
+    cursor.execute(f"SELECT id FROM school_meal_menu WHERE id='{id}'")
+    if cursor.fetchone() == None:
+        if image_url != None:
+            cursor.execute(
+                f"INSERT INTO school_meal_menu (id, type, upload_at, title, menu, image_url) VALUES ('{id}', '{type}', '{upload_at}', '{title}', '{menu}', '{image_url}')")
+        else:
+            cursor.execute(
+                f"INSERT INTO school_meal_menu (id, type, upload_at, title, menu) VALUES ('{id}', '{type}', '{upload_at}', '{title}', '{menu}')")
+    else:
+        if image_url != None:
+            cursor.execute(
+                f"UPDATE school_meal_menu SET type='{type}', upload_at='{upload_at}', title='{title}', menu='{menu}', image_url='{image_url}' WHERE id='{id}'")
+        else:
+            cursor.execute(
+                f"UPDATE school_meal_menu SET type='{type}', upload_at='{upload_at}', title='{title}', menu='{menu}' WHERE id='{id}'")
     db_connection.commit()

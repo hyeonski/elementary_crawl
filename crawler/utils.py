@@ -5,7 +5,7 @@ import requests
 
 
 def print_error_endl(error):
-    stderr.write(f"[{datetime.now()}] Error: {error}\n")
+    stderr.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error: {error}\n")
     stderr.flush()
 
 

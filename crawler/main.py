@@ -1,12 +1,15 @@
 import base64
+from datetime import datetime
 from urllib.parse import unquote
-from multiprocessing import Pool
+from multiprocessing import Pool, Process
 from typing import List
+from locale import setlocale, LC_TIME
+from dateutil.relativedelta import relativedelta
 import requests
 from bs4.element import Comment, ResultSet, Tag
 from bs4 import BeautifulSoup
 import pymysql
-from database import Post, AttachedFile, store_post_data, store_file_data
+from database import Post, AttachedFile, SchoolMealMenu, store_post_data, store_file_data, store_school_meal_menu
 from utils import my_get, my_post
 
 
@@ -69,7 +72,8 @@ def get_file_list(post_id, file_div: Tag, cookies: dict) -> List[AttachedFile]:
     while file_down_cnt < int(file_list_cnt):
         file_sn += 1
         file_url = f'https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={atch_file_id}&fileSn={str(file_sn)}'
-        file_response = my_get(file_url, cookies, headers={ 'User-Agent': user_agent })
+        file_response = my_get(file_url, cookies, headers={
+                               'User-Agent': user_agent})
         if 'Content-Disposition' not in file_response.headers:
             continue
 
@@ -132,7 +136,61 @@ def crawl_board(board_url: str, post_type: str, db_connection: pymysql.Connectio
         form_data['pageIndex'] = str(int(form_data['pageIndex']) + 1)
 
 
-def worker(board_url, post_type):
+def crawl_school_meal_menu(board_url: str, db_connection: pymysql.Connection):
+    # Get Session
+    cookies = dict(requests.get('https://seo2.sen.es.kr/',
+                   allow_redirects=False).cookies)
+    form_data = {
+        'viewType': '',
+        'pageIndex': '',
+        'arrMlsvId': '',
+        'srhMlsvYear': '',
+        'srhMlsvMonth': '',
+    }
+    get_form_data_from_inputs(
+        my_get(board_url, cookies=cookies).text, form_data)
+    form_data['viewType'] = 'list'
+
+    date = datetime(2017, 1, 1)
+    while True:
+        if (date > datetime.now()):
+            break
+
+        form_data['srhMlsvYear'] = str(date.year)
+        form_data['srhMlsvMonth'] = str(date.month).zfill(2)
+        for page in ['1', '2']:
+            form_data['pageIndex'] = page
+            response = my_post(board_url, cookies=cookies, data=form_data)
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            for tr in soup.select('table.board_type01_tb_list > tbody > tr'):
+                tds = tr.select('td')
+                if len(tds) <= 1:  # 조회된 데이터 없음
+                    break
+                mlsvId = tds[2].a.get('onclick').replace(
+                    "fnDetail('", "").replace("');", "")
+
+                response = my_post(
+                    'https://seo2.sen.es.kr/dggb/module/mlsv/selectMlsvDetailPopup.do', cookies=cookies, data={'mlsvId': mlsvId})
+                soup = BeautifulSoup(response.text, 'html.parser')
+
+                trs = soup.select('table.tbType02 > tbody > tr')
+                category = trs[0].td.text.strip()
+                meal_date = datetime.strptime(
+                    trs[1].td.text.strip(), '%Y년 %m월 %d일 %A').strftime('%Y-%m-%d')
+                title = trs[2].td.text.strip()
+                menu = trs[3].td.text.strip()
+                image_url = f"https://seo2.sen.es.kr{trs[5].td.img.get('src')}" if len(
+                    trs) == 6 else None
+
+                store_school_meal_menu(SchoolMealMenu(
+                    mlsvId, category, meal_date, title, menu, image_url), db_connection)
+                print(category, meal_date, title, menu, image_url)
+
+        date += relativedelta(months=1)
+
+
+def board_worker(board_url, post_type):
     db_connection = pymysql.connect(
         host='localhost', user='root', password='1234', db='elementary', charset='utf8')
 
@@ -140,7 +198,19 @@ def worker(board_url, post_type):
     db_connection.close()
 
 
+def school_meal_worker(board_url):
+    db_connection = pymysql.connect(
+        host='localhost', user='root', password='1234', db='elementary', charset='utf8')
+    setlocale(LC_TIME, 'ko_KR.UTF-8')
+
+    crawl_school_meal_menu(board_url, db_connection)
+    db_connection.close()
+
+
 if __name__ == '__main__':
+    process = Process(target=school_meal_worker, args=('https://seo2.sen.es.kr/78586/subMenu.do',))
+    process.start()
+
     boards = [
         ('https://seo2.sen.es.kr/78584/subMenu.do', 'notice'),
         ('https://seo2.sen.es.kr/78585/subMenu.do', 'parent_letter'),
@@ -148,4 +218,6 @@ if __name__ == '__main__':
     ]
 
     with Pool(processes=len(boards)) as pool:
-        pool.starmap(worker, boards)
+        pool.starmap(board_worker, boards)
+
+    process.join()
