@@ -7,6 +7,8 @@ from crawl_menu import crawl_school_meal_menu
 
 def board_worker(board_url, post_type_name):
     db_connection = pymysql.connect(host='localhost', user='root', password='1234', db='elementary', charset='utf8')
+
+    # post type id 가져오기
     cursor = db_connection.cursor()
     cursor.execute(f"SELECT id FROM post_type WHERE name='{post_type_name}'")
     post_type_id = cursor.fetchone()[0]
@@ -17,6 +19,7 @@ def board_worker(board_url, post_type_name):
 
 def school_meal_worker(board_url):
     db_connection = pymysql.connect(host='localhost', user='root', password='1234', db='elementary', charset='utf8')
+
     cursor = db_connection.cursor()
     cursor.execute(f"SELECT id FROM post_type WHERE name='school_meal_menu'")
     post_type_id = cursor.fetchone()[0]
