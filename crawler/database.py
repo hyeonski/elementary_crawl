@@ -1,8 +1,6 @@
 from pymysql import Connection
 from pymysql.cursors import Cursor
 
-from utils import print_error_endl
-
 
 class Post:
     def __init__(self, post_type_id, data_key, author, upload_at, title, content):
@@ -57,8 +55,7 @@ def store_file_data(db_connection: Connection, file: AttachedFile):
     cursor.execute(f"SELECT id FROM post WHERE data_key='{post_data_key}'")
     ids = cursor.fetchone()
     if ids == None:
-        print_error_endl(f'Post data key {post_data_key} not found')
-        exit()
+        raise Exception(f'Post data key {post_data_key} not found')
     post_id = ids[0]
 
     cursor.execute(
