@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { AppService } from './app.service';
+import { Post } from './entities/post.entity';
 
 @Controller()
 export class AppController {
@@ -15,37 +16,31 @@ export class AppController {
 
   @Get()
   async getPostList(@Query('type') type: string, @Res() res: Response) {
-    const postTypes = ['notice', 'parent_letter', 'school_meal'];
-    let lastUpdate;
+    const postTypes = [
+      'notice',
+      'parent_letter',
+      'school_meal',
+      'school_meal_menu',
+    ];
+    let posts: Post[];
 
-    if (!type) type = 'notice';
-
-    if (type === 'school_meal_menu') {
-      const menus = await this.appService.getSchoolMealMenus();
-      lastUpdate =
-        menus.length > 0 ? menus[0].updatedAt.toLocaleString() : null;
-
-      return res.render('list_menu', {
-        type,
-        count: menus.length,
-        lastUpdate,
-        menus,
-      });
+    if (!type) {
+      posts = await this.appService.getPosts();
     } else if (postTypes.includes(type)) {
       const postType = await this.appService.getPostTypeByName(type);
-      const posts = await this.appService.getPostsByPostType(postType);
-      lastUpdate =
-        posts.length > 0 ? posts[0].updatedAt.toLocaleString() : null;
-
-      return res.render('list_post', {
-        type,
-        count: posts.length,
-        lastUpdate,
-        posts,
-      });
+      posts = await this.appService.getPostsByPostType(postType);
     } else {
       throw new NotFoundException();
     }
+    const lastUpdate =
+      posts.length > 0 ? posts[0].updatedAt.toLocaleString() : null;
+
+    return res.render('list_post', {
+      type,
+      count: posts.length,
+      lastUpdate,
+      posts,
+    });
   }
 
   @Get('/post/:id')
@@ -55,11 +50,5 @@ export class AppController {
       file.size = this.appService.convertFileSizeToString(file.size);
     }
     return res.render('post', post);
-  }
-
-  @Get('/menu/:id')
-  async getMenu(@Param('id') id: number, @Res() res: Response) {
-    const menu = await this.appService.getSchoolMealMenuById(id);
-    return res.render('menu', menu);
   }
 }

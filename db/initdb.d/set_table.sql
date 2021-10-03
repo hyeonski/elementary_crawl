@@ -14,13 +14,15 @@ ENGINE = InnoDB;
 INSERT INTO `elementary`.`post_type` (`id`, `name`) VALUES
   (1, 'notice'),
   (2, 'parent_letter'),
-  (3, 'school_meal');
+  (3, 'school_meal'),
+  (4, 'school_meal_menu');
 
 -- -----------------------------------------------------
 -- Table `elementary`.`post`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `elementary`.`post` (
-  `id` INT NOT NULL,
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `data_key` VARCHAR(20) NOT NULL,
   `post_type_id` INT NOT NULL,
   `author` VARCHAR(30) NOT NULL,
   `upload_at` DATE NOT NULL,
@@ -28,6 +30,7 @@ CREATE TABLE IF NOT EXISTS `elementary`.`post` (
   `content` MEDIUMTEXT NULL,
   `updated_at` TIMESTAMP NOT NULL DEFAULT current_timestamp ON UPDATE current_timestamp,
   PRIMARY KEY (`id`),
+  UNIQUE (`data_key`),
   FOREIGN KEY (`post_type_id`)
   REFERENCES `elementary`.`post_type` (`id`)
   ON DELETE RESTRICT
@@ -53,18 +56,4 @@ CREATE TABLE IF NOT EXISTS `elementary`.`attached_file` (
   REFERENCES `elementary`.`post` (`id`)
   ON DELETE CASCADE
   ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
--- -----------------------------------------------------
--- Table `elementary`.`school_meal_menu`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `elementary`.`school_meal_menu` (
-  `id` INT NOT NULL,
-  `type` VARCHAR(30) NOT NULL,
-  `upload_at` DATE NOT NULL,
-  `title` VARCHAR(100) NOT NULL,
-  `menu` VARCHAR(100) NOT NULL,
-  `image_url` VARCHAR(255) NULL,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT current_timestamp ON UPDATE current_timestamp,
-  PRIMARY KEY (`id`))
 ENGINE = InnoDB;

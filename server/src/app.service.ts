@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EntityNotFoundError, Repository } from 'typeorm';
 import { PostType } from './entities/post-type.entity';
 import { Post } from './entities/post.entity';
-import { SchoolMealMenu } from './entities/school-meal-menu.entity';
 
 @Injectable()
 export class AppService {
@@ -11,11 +10,15 @@ export class AppService {
     @InjectRepository(Post) private readonly postRepository: Repository<Post>,
     @InjectRepository(PostType)
     private readonly postTypeRepository: Repository<PostType>,
-    @InjectRepository(SchoolMealMenu)
-    private readonly schoolMealMenuRepository: Repository<SchoolMealMenu>,
   ) {}
   async getPostTypeByName(type: string): Promise<PostType> {
     return await this.postTypeRepository.findOne({ where: { name: type } });
+  }
+
+  async getPosts(): Promise<Post[]> {
+    return await this.postRepository.find({
+      order: { uploadAt: 'DESC' },
+    });
   }
 
   async getPostsByPostType(type: PostType): Promise<Post[]> {
@@ -30,24 +33,6 @@ export class AppService {
       return await this.postRepository.findOneOrFail({
         where: { id },
         relations: ['attachedFiles'],
-      });
-    } catch (e) {
-      if (e instanceof EntityNotFoundError) {
-        throw new NotFoundException();
-      } else throw e;
-    }
-  }
-
-  async getSchoolMealMenus(): Promise<SchoolMealMenu[]> {
-    return await this.schoolMealMenuRepository.find({
-      order: { uploadAt: 'DESC' },
-    });
-  }
-
-  async getSchoolMealMenuById(id: number): Promise<SchoolMealMenu> {
-    try {
-      return await this.schoolMealMenuRepository.findOneOrFail({
-        where: { id },
       });
     } catch (e) {
       if (e instanceof EntityNotFoundError) {

@@ -17,9 +17,12 @@ def board_worker(board_url, post_type_name):
 
 def school_meal_worker(board_url):
     db_connection = pymysql.connect(host='localhost', user='root', password='1234', db='elementary', charset='utf8')
-    setlocale(LC_TIME, 'ko_KR.UTF-8') # 한글 날짜 파싱을 위한 설정
+    cursor = db_connection.cursor()
+    cursor.execute(f"SELECT id FROM post_type WHERE name='school_meal_menu'")
+    post_type_id = cursor.fetchone()[0]
 
-    crawl_school_meal_menu(board_url, db_connection)
+    setlocale(LC_TIME, 'ko_KR.UTF-8') # 한글 날짜 파싱을 위한 설정
+    crawl_school_meal_menu(board_url, post_type_id, db_connection)
     db_connection.close()
 
 

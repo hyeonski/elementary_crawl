@@ -14,6 +14,9 @@ export class Post {
   @PrimaryColumn({ name: 'id', type: 'int' })
   id: number;
 
+  @Column({ name: 'data_key', type: 'varchar', length: 20 })
+  dataKey: string;
+
   @Column({ name: 'author', type: 'varchar', length: 30 })
   author: string;
 

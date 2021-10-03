@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 import requests
 from bs4 import BeautifulSoup
 import pymysql
-from database import SchoolMealMenu, store_school_meal_menu
+from database import Post, store_post_data
 from utils import get_form_data_from_inputs, my_get, my_post
 
 def get_menu_list_trs(board_url: str, page: str, form_data: dict, cookies: dict) -> ResultSet[Tag]:
@@ -14,22 +14,31 @@ def get_menu_list_trs(board_url: str, page: str, form_data: dict, cookies: dict)
     return soup.select('table.board_type01_tb_list > tbody > tr')
 
 
-def get_menu_data(mlsvId, cookies: dict) -> SchoolMealMenu:
+def get_menu_data(mlsvId, post_type_id, cookies: dict) -> Post:
     response = my_post('https://seo2.sen.es.kr/dggb/module/mlsv/selectMlsvDetailPopup.do', cookies=cookies, data={'mlsvId': mlsvId})
     soup = BeautifulSoup(response.text, 'html.parser')
 
     trs = soup.select('table.tbType02 > tbody > tr')
-    return SchoolMealMenu(
-        id=mlsvId,
-        type=trs[0].td.text.strip(),
-        upload_at=datetime.strptime(trs[1].td.text.strip(), '%Y년 %m월 %d일 %A').strftime('%Y-%m-%d'),
-        title=trs[2].td.text.strip(),
-        menu=trs[3].td.text.strip(),
-        image_url=f"https://seo2.sen.es.kr{trs[5].td.img.get('src')}" if len(trs) == 6 else None
+    date = datetime.strptime(trs[1].td.text.strip(), '%Y년 %m월 %d일 %A').strftime('%Y-%m-%d')
+    type = trs[0].td.text.strip()
+    menu = trs[3].td.text.strip()
+    image_url = f"https://seo2.sen.es.kr{trs[5].td.img.get('src')}" if len(trs) == 6 else None
+
+    content = f'<p>{menu}</p>'
+    if image_url:
+        content += f'<img src="{image_url}" alt="{date} {type} 급식 이미지">'
+
+    return Post(
+        post_type_id=post_type_id,
+        data_key=f'mlsvId-{mlsvId}',
+        author='관리자',
+        upload_at=date,
+        title=f'{date} [{type}]',
+        content=content,
     )
 
 
-def crawl_school_meal_menu(board_url: str, db_connection: pymysql.Connection):
+def crawl_school_meal_menu(board_url: str, post_type_id, db_connection: pymysql.Connection):
     # Get Session
     cookies = dict(requests.get('https://seo2.sen.es.kr/', allow_redirects=False).cookies)
     form_data = {
@@ -55,8 +64,8 @@ def crawl_school_meal_menu(board_url: str, db_connection: pymysql.Connection):
                 if len(tds) <= 1:  # 조회된 데이터 없음
                     break
                 mlsvId = tds[2].a.get('onclick').replace("fnDetail('", "").replace("');", "")
-                menu_data = get_menu_data(mlsvId, cookies)
-                store_school_meal_menu(menu_data, db_connection)
-                print(menu_data.upload_at, menu_data.menu, menu_data.image_url)
+                menu_data = get_menu_data(mlsvId, post_type_id, cookies)
+                store_post_data(db_connection, menu_data)
+                print(menu_data.data_key, menu_data.title)
 
         date += relativedelta(months=1)

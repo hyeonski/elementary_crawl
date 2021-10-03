@@ -5,7 +5,6 @@ import { AppService } from './app.service';
 import { AttachedFile } from './entities/attached-file.entity';
 import { PostType } from './entities/post-type.entity';
 import { Post } from './entities/post.entity';
-import { SchoolMealMenu } from './entities/school-meal-menu.entity';
 
 @Module({
   imports: [
@@ -16,10 +15,10 @@ import { SchoolMealMenu } from './entities/school-meal-menu.entity';
       username: 'root',
       password: '1234',
       database: 'elementary',
-      entities: [PostType, Post, AttachedFile, SchoolMealMenu],
+      entities: [PostType, Post, AttachedFile],
       synchronize: false,
     }),
-    TypeOrmModule.forFeature([PostType, Post, AttachedFile, SchoolMealMenu]),
+    TypeOrmModule.forFeature([PostType, Post, AttachedFile]),
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -39,7 +39,7 @@ def get_post_data(post_type_id, soup: BeautifulSoup, form_data: dict) -> Post:
 
     return Post(
         post_type_id=post_type_id,
-        post_id=form_data['nttId'],
+        data_key=f'nttId-{form_data["nttId"]}',
         author=elems_in_table[0].text.strip(),
         upload_at=elems_in_table[1].text.strip(),
         title=elems_in_table[2].text.strip(),
@@ -47,7 +47,7 @@ def get_post_data(post_type_id, soup: BeautifulSoup, form_data: dict) -> Post:
     )
 
 
-def get_file_list(post_id, file_div: Tag, cookies: dict) -> List[AttachedFile]:
+def get_file_list(post_data_key, file_div: Tag, cookies: dict) -> List[AttachedFile]:
     user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36'
 
     atch_file_id = file_div.select_one('input[name=atchFileId]').get('value')
@@ -65,7 +65,7 @@ def get_file_list(post_id, file_div: Tag, cookies: dict) -> List[AttachedFile]:
             continue
 
         file_list.append(AttachedFile(
-            post_id=post_id,
+            post_data_key=post_data_key,
             attached_file_id=atch_file_id,
             file_sn=file_sn,
             name=unquote(file_response.headers['Content-Disposition'].split('filename=')[1]),
@@ -103,12 +103,12 @@ def crawl_board(board_url: str, post_type_id, db_connection: pymysql.Connection)
             post_data = get_post_data(post_type_id, soup, form_data)
             store_post_data(db_connection, post_data)
 
-            print(f'{post_data.post_id} {post_data.author} {post_data.upload_at} {post_data.title}')
+            print(f'{post_data.data_key} {post_data.author} {post_data.upload_at} {post_data.title}')
 
             # Get Attached Files
             file_div = soup.select_one('div#file_div')
             if file_div != None:
-                file_list = get_file_list(post_data.post_id, file_div, cookies)
+                file_list = get_file_list(post_data.data_key, file_div, cookies)
                 # 업데이트를 위해 이전 파일 목록 삭제
                 cursor = db_connection.cursor()
                 cursor.execute(f"DELETE FROM attached_file WHERE attached_file_id='{file_list[0].attached_file_id}'")
