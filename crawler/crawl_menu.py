@@ -7,7 +7,7 @@ import pymysql
 from database import SchoolMealMenu, store_school_meal_menu
 from utils import get_form_data_from_inputs, my_get, my_post
 
-def get_menu_list(board_url: str, page: str, form_data: dict, cookies: dict) -> ResultSet[Tag]:
+def get_menu_list_trs(board_url: str, page: str, form_data: dict, cookies: dict) -> ResultSet[Tag]:
     form_data['pageIndex'] = page
     response = my_post(board_url, cookies=cookies, data=form_data)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -31,8 +31,7 @@ def get_menu_data(mlsvId, cookies: dict) -> SchoolMealMenu:
 
 def crawl_school_meal_menu(board_url: str, db_connection: pymysql.Connection):
     # Get Session
-    cookies = dict(requests.get('https://seo2.sen.es.kr/',
-                   allow_redirects=False).cookies)
+    cookies = dict(requests.get('https://seo2.sen.es.kr/', allow_redirects=False).cookies)
     form_data = {
         'viewType': '',
         'pageIndex': '',
@@ -40,8 +39,7 @@ def crawl_school_meal_menu(board_url: str, db_connection: pymysql.Connection):
         'srhMlsvYear': '',
         'srhMlsvMonth': '',
     }
-    get_form_data_from_inputs(
-        my_get(board_url, cookies=cookies).text, form_data)
+    get_form_data_from_inputs(my_get(board_url, cookies=cookies).text, form_data)
     form_data['viewType'] = 'list'
 
     date = datetime(2017, 1, 1)
@@ -51,7 +49,7 @@ def crawl_school_meal_menu(board_url: str, db_connection: pymysql.Connection):
         form_data['srhMlsvYear'] = str(date.year)
         form_data['srhMlsvMonth'] = str(date.month).zfill(2)
         for page in ['1', '2']:
-            menu_list = get_menu_list(board_url, page, form_data, cookies)
+            menu_list = get_menu_list_trs(board_url, page, form_data, cookies)
             for menu_row in menu_list:
                 tds = menu_row.select('td')
                 if len(tds) <= 1:  # 조회된 데이터 없음

@@ -9,20 +9,21 @@ from database import Post, AttachedFile, store_post_data, store_file_data
 from utils import get_form_data_from_inputs, my_get, my_post
 
 
-def get_post_list_rows(cookies: dict, form_data: dict) -> ResultSet[Tag]:
+def get_post_list_trs(cookies: dict, form_data: dict) -> ResultSet[Tag]:
     list_response = my_post(
-        'https://seo2.sen.es.kr/dggb/module/board/selectBoardListAjax.do', cookies=cookies, data=form_data)
+        'https://seo2.sen.es.kr/dggb/module/board/selectBoardListAjax.do',
+        cookies=cookies,
+        data=form_data)
+
     soup = BeautifulSoup(list_response.text, 'html.parser')
     return soup.select('tbody > tr')
 
 
 def get_post_detail_soup(post: Tag, form_data: dict, cookies: dict) -> BeautifulSoup:
-    form_data['nttId'] = post.select_one('td > a').get('onclick').replace(
-        f"fnView('{form_data['bbsId']}', '", '').replace("');", '')  # onclick 함수의 인자에서 nttId 값 추출
-    form_data['ifNttId'] = base64.b64encode(
-        form_data['nttId'].encode('ascii')).decode('ascii')
-    post_response = my_post(
-        'https://seo2.sen.es.kr/dggb/module/board/selectBoardDetailAjax.do', cookies=cookies, data=form_data)
+    # onclick 함수의 인자에서 nttId 값 추출
+    form_data['nttId'] = post.select_one('td > a').get('onclick').replace(f"fnView('{form_data['bbsId']}', '", '').replace("');", '')
+    form_data['ifNttId'] = base64.b64encode(form_data['nttId'].encode('ascii')).decode('ascii')
+    post_response = my_post('https://seo2.sen.es.kr/dggb/module/board/selectBoardDetailAjax.do', cookies=cookies, data=form_data)
     return BeautifulSoup(post_response.text, 'html.parser')
 
 
@@ -59,8 +60,7 @@ def get_file_list(post_id, file_div: Tag, cookies: dict) -> List[AttachedFile]:
     while file_down_cnt < int(file_list_cnt):
         file_sn += 1
         file_url = f'https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={atch_file_id}&fileSn={str(file_sn)}'
-        file_response = my_get(file_url, cookies, headers={
-                               'User-Agent': user_agent})
+        file_response = my_get(file_url, cookies, headers={ 'User-Agent': user_agent })
         if 'Content-Disposition' not in file_response.headers:
             continue
 
@@ -68,19 +68,16 @@ def get_file_list(post_id, file_div: Tag, cookies: dict) -> List[AttachedFile]:
             post_id=post_id,
             attached_file_id=atch_file_id,
             file_sn=file_sn,
-            name=unquote(
-                file_response.headers['Content-Disposition'].split('filename=')[1]),
+            name=unquote(file_response.headers['Content-Disposition'].split('filename=')[1]),
             size=file_response.headers['Content-Length'],
         ))
         file_down_cnt += 1
-
     return file_list
 
 
 def crawl_board(board_url: str, post_type_id, db_connection: pymysql.Connection):
     # Get Session
-    cookies = dict(requests.get('https://seo2.sen.es.kr/',
-                   allow_redirects=False).cookies)
+    cookies = dict(requests.get('https://seo2.sen.es.kr/', allow_redirects=False).cookies)
 
     form_data = {
         'bbsId': '',
@@ -89,13 +86,11 @@ def crawl_board(board_url: str, post_type_id, db_connection: pymysql.Connection)
         'pageIndex': '',
     }
 
-    get_form_data_from_inputs(
-        my_get(board_url, cookies=cookies).text, form_data)
+    get_form_data_from_inputs(my_get(board_url, cookies=cookies).text, form_data)
 
     form_data['customRecordCountPerPage'] = 1000  # 리스트 한 페이지 당 게시글 수 조정
     while True:
-        posts = get_post_list_rows(cookies, form_data)
-
+        posts = get_post_list_trs(cookies, form_data)
         for post in posts:
             # 컬럼이 하나인 경우 조회된 내용 없음
             if len(post.find_all('td')) == 1:
@@ -108,16 +103,15 @@ def crawl_board(board_url: str, post_type_id, db_connection: pymysql.Connection)
             post_data = get_post_data(post_type_id, soup, form_data)
             store_post_data(db_connection, post_data)
 
-            print(
-                f'{post_data.post_id} {post_data.author} {post_data.upload_at} {post_data.title}')
+            print(f'{post_data.post_id} {post_data.author} {post_data.upload_at} {post_data.title}')
 
             # Get Attached Files
             file_div = soup.select_one('div#file_div')
             if file_div != None:
                 file_list = get_file_list(post_data.post_id, file_div, cookies)
+                # 업데이트를 위해 이전 파일 목록 삭제
                 cursor = db_connection.cursor()
-                cursor.execute(
-                    f"DELETE FROM attached_file WHERE attached_file_id='{file_list[0].attached_file_id}'")
+                cursor.execute(f"DELETE FROM attached_file WHERE attached_file_id='{file_list[0].attached_file_id}'")
                 for file in file_list:
                     store_file_data(db_connection, file)
 
