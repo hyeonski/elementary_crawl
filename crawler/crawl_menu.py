@@ -50,7 +50,7 @@ def get_menu_data(mlsvId, post_type_id, cookies: dict) -> Post:
     # 내용(본문)은 메뉴, 식단이미지로 구성
     content = f'<p>{menu}</p>'
     if image_url:
-        content += f'<img src="{image_url}" alt="{date} {type} 급식 이미지">'
+        content += f'<img src="{image_url}" alt="{date} {type} 급식 이미지" width="300">'
 
     return Post(
         post_type_id=post_type_id,
