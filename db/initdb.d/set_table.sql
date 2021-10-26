@@ -11,6 +11,12 @@ CREATE TABLE IF NOT EXISTS `elementary`.`post_type` (
   UNIQUE (`name`))
 ENGINE = InnoDB;
 
+INSERT INTO `elementary`.`post_type` (`name`) VALUES
+  ('공지사항'),
+  ('가정통신문'),
+  ('급식 소식'),
+  ('오늘의 급식');
+
 -- -----------------------------------------------------
 -- Table `elementary`.`school`
 -- -----------------------------------------------------
@@ -20,6 +26,9 @@ CREATE TABLE IF NOT EXISTS `elementary`.`school` (
   PRIMARY KEY (`id`),
   UNIQUE (`name`))
 ENGINE = InnoDB;
+
+INSERT INTO `elementary`.`school` (`name`) VALUES
+  ('서울서이초등학교');
 
 -- -----------------------------------------------------
 -- Table `elementary`.`post`
@@ -58,6 +67,7 @@ CREATE TABLE IF NOT EXISTS `elementary`.`attached_file` (
   `download_url` VARCHAR(255) NOT NULL,
   `updated_at` TIMESTAMP NOT NULL DEFAULT current_timestamp ON UPDATE current_timestamp,
   PRIMARY KEY (`id`),
+  UNIQUE (`post_id`, `data_key`),
   FOREIGN KEY (`post_id`)
   REFERENCES `elementary`.`post` (`id`)
   ON DELETE CASCADE
