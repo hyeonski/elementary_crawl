@@ -1,1 +1,0 @@
-import scrapper.school1 as scrapper_school1
