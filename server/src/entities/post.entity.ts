@@ -8,11 +8,20 @@ import {
 } from 'typeorm';
 import { AttachedFile } from './attached-file.entity';
 import { PostType } from './post-type.entity';
+import { School } from './school.entity';
 
 @Entity('post')
 export class Post {
   @PrimaryColumn({ name: 'id', type: 'int' })
   id: number;
+
+  @ManyToOne(() => School)
+  @JoinColumn({ name: 'school_id', referencedColumnName: 'id' })
+  school: School;
+
+  @ManyToOne(() => PostType)
+  @JoinColumn({ name: 'post_type_id', referencedColumnName: 'id' })
+  postType: PostType;
 
   @Column({ name: 'data_key', type: 'varchar', length: 20 })
   dataKey: string;
@@ -31,10 +40,6 @@ export class Post {
 
   @Column({ name: 'updated_at', type: 'timestamp' })
   updatedAt: Date;
-
-  @ManyToOne(() => PostType)
-  @JoinColumn({ name: 'post_type_id', referencedColumnName: 'id' })
-  postType: PostType;
 
   @OneToMany(() => AttachedFile, (attachedFile) => attachedFile.post)
   attachedFiles: AttachedFile[];

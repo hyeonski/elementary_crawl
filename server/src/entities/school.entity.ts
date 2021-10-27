@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('post_type')
-export class PostType {
+@Entity('school')
+export class School {
   @PrimaryGeneratedColumn({ name: 'id', type: 'int' })
   id: number;
 

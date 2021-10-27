@@ -1,12 +1,17 @@
 <header>
   <div class='page-header'>
-    <h1>서울서이초등학교</h1>
+    <h1>{{school/name}}</h1>
   </div>
   <ul class='nav nav-pills'>
-    <li role='presentation'><a href='/'>전체</a></li>
-    <li role='presentation'><a href='/?type=parent_letter'>가정통신문</a></li>
-    <li role='presentation'><a href='/?type=parent_letter'>가정통신문</a></li>
-    <li role='presentation'><a href='/?type=school_meal'>급식게시판</a></li>
-    <li role='presentation'><a href='/?type=school_meal_menu'>급식메뉴</a></li>
+    <li role='presentation'>
+      <a href='/school/{{school/id}}'>전체</a></li>
+    <li role='presentation'>
+      <a href='/school/{{school/id}}?type=parent_letter'>가정통신문</a></li>
+    <li role='presentation'>
+      <a href='/school/{{school/id}}?type=parent_letter'>가정통신문</a></li>
+    <li role='presentation'>
+      <a href='/school/{{school/id}}?type=school_meal_news'>급식 소식</a></li>
+    <li role='presentation'>
+      <a href='/school/{{school/id}}?type=today_school_meal'>오늘의 급식</a></li>
   </ul>
 </header>
