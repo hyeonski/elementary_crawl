@@ -23,15 +23,15 @@ class Session:
     def __del__(self):
         get_event_loop().run_until_complete(self.session.close())
 
-    async def request(self, method: str, url: str, **kwargs):
+    async def request(self, method: str, url: str, **kwargs) -> Response:
         async with self.semaphore:
             await sleep(0.5)
             async with self.session.request(method, url, ssl=False, **kwargs) as response:
                 raw = await response.read()
                 return Response(response.status, response.headers, raw, response.get_encoding())
 
-    async def get(self, url: str, **kwargs):
+    async def get(self, url: str, **kwargs) -> Response:
         return await self.request('GET', url, **kwargs)
 
-    async def post(self, url: str, **kwargs):
+    async def post(self, url: str, **kwargs) -> Response:
         return await self.request('POST', url, **kwargs)

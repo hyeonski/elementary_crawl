@@ -1,15 +1,16 @@
 from abc import ABCMeta, abstractmethod
 import asyncio
+
 from database import DBManager
 from request import Session
 
 
 class ACrawler(metaclass=ABCMeta):
-    def __init__(self, school_main_url):
+    def __init__(self, school_main_url: str):
         asyncio.get_event_loop().run_until_complete(self.start_session(school_main_url))
         self.db_manager = DBManager()
 
-    async def start_session(self, school_main_url):
+    async def start_session(self, school_main_url: str):
         self.session = Session()
         await self.session.get(school_main_url, allow_redirects=False)
 
