@@ -45,8 +45,6 @@ class DBManager:
 
     def store_post_data(self, post: Post):
         school_name, post_type_name, data_key, author, upload_at, title, content, attached_files = post
-        title = self.db_connection.escape_string(title)
-        content = self.db_connection.escape_string(content)
 
         with self.db_connection.cursor() as cursor:
             cursor.execute(f"SELECT id FROM school WHERE name='{school_name}'")
@@ -78,8 +76,6 @@ class DBManager:
                     cursor.execute(f"DELETE FROM attached_file WHERE post_id='{post_id}'")
                     for attached_file in attached_files:
                         data_key, name, size, download_url = attached_file
-                        name = self.db_connection.escape_string(name)
-                        download_url = self.db_connection.escape_string(download_url)
                         sql = "INSERT INTO attached_file (post_id, data_key, name, size, download_url) VALUES (%s, %s, %s, %s, %s)"
                         cursor.execute(sql, (post_id, data_key, name, size, download_url))
                         print(f'{school_name} {post_type_name} 첨부파일 {data_key} 저장됨')
