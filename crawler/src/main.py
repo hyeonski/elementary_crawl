@@ -5,10 +5,16 @@ from dotenv import load_dotenv
 from crawler.seoul_seoi import SeoulSeoiCrawler
 
 
+def exception_handler(loop, context):
+    print(context)
+    exit(1)
+
+
 def main():
     load_dotenv(verbose=True)
     loop = asyncio.get_event_loop()
-    crawler = SeoulSeoiCrawler()
+    loop.set_exception_handler(exception_handler)
+    crawler = SeoulSeoiCrawler('https://seo2.sen.es.kr/')
     loop.run_until_complete(crawler.run())
 
 

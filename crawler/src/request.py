@@ -1,4 +1,4 @@
-from asyncio import get_event_loop, Semaphore
+from asyncio import get_event_loop, Semaphore, sleep
 
 from aiohttp import ClientSession
 from multidict import CIMultiDictProxy
@@ -25,6 +25,7 @@ class Session:
 
     async def request(self, method: str, url: str, **kwargs):
         async with self.semaphore:
+            await sleep(0.5)
             async with self.session.request(method, url, ssl=False, **kwargs) as response:
                 raw = await response.read()
                 return Response(response.status, response.headers, raw, response.get_encoding())

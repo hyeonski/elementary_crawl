@@ -51,43 +51,36 @@ class DBManager:
         with self.db_connection.cursor() as cursor:
             cursor.execute(f"SELECT id FROM school WHERE name='{school_name}'")
             school_id = cursor.fetchone()[0]
-            cursor.execute(
-                f"SELECT id FROM post_type WHERE name='{post_type_name}'")
+            cursor.execute(f"SELECT id FROM post_type WHERE name='{post_type_name}'")
             post_type_id = cursor.fetchone()[0]
-            cursor.execute(
-                f"SELECT id FROM post WHERE school_id='{school_id}' AND post_type_id='{post_type_id}' AND data_key='{data_key}'")
+            cursor.execute(f"SELECT id FROM post WHERE school_id='{school_id}' AND post_type_id='{post_type_id}' AND data_key='{data_key}'")
+
             post_id = cursor.fetchone()
             if post_id is None:
                 sql = "INSERT INTO post (school_id, post_type_id, data_key, author, upload_at, title, content) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(sql, (school_id, post_type_id,
-                               data_key, author, upload_at, title, content))
+                cursor.execute(sql, (school_id, post_type_id, data_key, author, upload_at, title, content))
             else:
                 post_id = post_id[0]
                 sql = "UPDATE post SET author=%s, upload_at=%s, title=%s, content=%s WHERE id=%s"
                 cursor.execute(
                     sql, (author, upload_at, title, content, post_id))
-            print(f'{school_name} {post_type_name} {data_key} 저장됨')
             self.db_connection.commit()
+            print(f'{school_name} {post_type_name} {data_key} 저장됨')
 
             if attached_files is not None:
-                cursor.execute(
-                    f"SELECT id FROM post WHERE school_id='{school_id}' AND post_type_id='{post_type_id}' AND data_key='{data_key}'")
+                cursor.execute(f"SELECT id FROM post WHERE school_id='{school_id}' AND post_type_id='{post_type_id}' AND data_key='{data_key}'")
                 post_id = cursor.fetchone()
                 if post_id is None:
                     # 에러처리 필요
                     return
                 else:
                     post_id = post_id[0]
-                    cursor.execute(
-                        f"DELETE FROM attached_file WHERE post_id='{post_id}'")
+                    cursor.execute(f"DELETE FROM attached_file WHERE post_id='{post_id}'")
                     for attached_file in attached_files:
                         data_key, name, size, download_url = attached_file
                         name = self.db_connection.escape_string(name)
-                        download_url = self.db_connection.escape_string(
-                            download_url)
-
+                        download_url = self.db_connection.escape_string(download_url)
                         sql = "INSERT INTO attached_file (post_id, data_key, name, size, download_url) VALUES (%s, %s, %s, %s, %s)"
-                        cursor.execute(
-                            sql, (post_id, data_key, name, size, download_url))
+                        cursor.execute(sql, (post_id, data_key, name, size, download_url))
+                        print(f'{school_name} {post_type_name} 첨부파일 {data_key} 저장됨')
                     self.db_connection.commit()
-                    print(f'{school_name} {post_type_name} 첨부파일 {data_key} 저장됨')

@@ -5,3 +5,4 @@ chromedriver
 data
 __pycache__
 .env
+google_credentials.json

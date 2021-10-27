@@ -4,38 +4,28 @@ from copy import deepcopy
 from datetime import datetime
 from urllib.parse import unquote
 from locale import setlocale, LC_TIME
+from uuid import uuid1
 
 from bs4 import BeautifulSoup
 from bs4.element import Comment, Tag
 from dateutil.relativedelta import relativedelta
+from crawler.crawler import ACrawler
 
 from request import Session
 from database import AttachedFile, DBManager, Post
-from util import get_form_data_from_inputs
+from util import get_form_data_from_inputs, manip_board_content
+from upload_file import upload_attachment_from_bytes
 
 
-class SeoulSeoiCrawler:
-    def __init__(self):
-        asyncio.get_event_loop().run_until_complete(self.start_session())
-        self.db_manager = DBManager()
+class SeoulSeoiCrawler(ACrawler):
+    async def crawl_notice(self):
+        await self.crawl_board('https://seo2.sen.es.kr/78584/subMenu.do', '공지사항')
 
-    async def start_session(self):
-        self.session = Session()
-        await self.session.get('https://seo2.sen.es.kr/', allow_redirects=False)
-
-    def __del__(self):
-        del self.session
-        del self.db_manager
-
-    async def run(self):
-        tasks = [
-            self.crawl_board(
-                'https://seo2.sen.es.kr/78584/subMenu.do', '공지사항'),
-            self.crawl_board(
-                'https://seo2.sen.es.kr/78585/subMenu.do', '가정통신문'),
-            self.crawl_school_meal(),
-        ]
-        await asyncio.gather(*tasks)
+    async def crawl_parent_letter(self):
+        await self.crawl_board('https://seo2.sen.es.kr/78585/subMenu.do', '가정통신문')
+         
+    async def crawl_school_meal_news(self):
+        await self.crawl_school_meal()
 
     async def crawl_board(self, board_url, post_type_name):
         async def get_post_detail_view(form_data: dict):
@@ -83,34 +73,35 @@ class SeoulSeoiCrawler:
         soup = BeautifulSoup(detail_page, 'html.parser')
         elems_in_table = soup.select('tbody > tr > td > div')
 
-        # content가 full html인 경우 및 html 주석 제거를 위해 필터링
-        print(post_type_name, ntt_id, elems_in_table[1].text.strip())
+        author = elems_in_table[0].text.strip()
+        upload_at = elems_in_table[1].text.strip()
+        title = elems_in_table[2].text.strip()
         content_div = elems_in_table[3]
-        content_list = content_div.p.contents if content_div.p.html == None else content_div.p.body.contents
+        print(post_type_name, ntt_id, title)
 
-        def stringify_tag_except_comments(tag: Tag):
-            return str(tag) if not isinstance(tag, Comment) else ''
-        content = ''.join(map(stringify_tag_except_comments, content_list))
+        # content가 full html인 경우 및 html 주석 제거를 위해 필터링
+        content = content_div.p if content_div.p.html == None else content_div.p.body
+
+        await manip_board_content(self.session, content)
 
         post = Post(
             school_name='서울서이초등학교',
             post_type_name=post_type_name,
             data_key=ntt_id,
-            author=elems_in_table[0].text.strip(),
-            upload_at=elems_in_table[1].text.strip(),
-            title=elems_in_table[2].text.strip(),
-            content=content,
+            author=author,
+            upload_at=upload_at,
+            title=title,
+            content=str(content),
         )
 
         # Get Attached Files
         file_div = soup.select_one('div#file_div')
         if file_div != None:
             user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36'
-            atch_file_id = file_div.select_one(
-                'input[name=atchFileId]').get('value')
-            file_list_cnt = file_div.select_one(
-                'input[name=fileListCnt]').get('value')
+            atch_file_id = file_div.select_one('input[name=atchFileId]').get('value')
+            file_list_cnt = file_div.select_one('input[name=fileListCnt]').get('value')
 
+            dir_uuid = str(uuid1())
             file_list = []
             file_down_cnt = 0
             file_sn = -1
@@ -121,12 +112,15 @@ class SeoulSeoiCrawler:
                 if 'Content-Disposition' not in response.headers:
                     continue
 
+                name=unquote(response.headers['Content-Disposition'].split('filename=')[1])
+                size=response.headers['Content-Length']
+                public_url = upload_attachment_from_bytes(response.raw, dir_uuid, name)
+
                 file_list.append(AttachedFile(
                     data_key=f'{atch_file_id}-{file_sn}',
-                    name=unquote(
-                        response.headers['Content-Disposition'].split('filename=')[1]),
-                    size=response.headers['Content-Length'],
-                    download_url=file_url,  # 추후 업로드 경로 추가
+                    name=name,
+                    size=size,
+                    download_url=public_url,
                 ))
                 file_down_cnt += 1
             post.attached_files = file_list
@@ -160,18 +154,15 @@ class SeoulSeoiCrawler:
             for page in ['1', '2']:
                 form_data['pageIndex'] = page
                 response = await self.session.post(board_url, data=form_data)
-                menu_list_trs = BeautifulSoup(response.text(), 'html.parser').select(
-                    'table.board_type01_tb_list > tbody > tr')
+                menu_list_trs = BeautifulSoup(response.text(), 'html.parser').select('table.board_type01_tb_list > tbody > tr')
                 for menu_list_tr in menu_list_trs:
                     tds = menu_list_tr.select('td')
                     if len(tds) <= 1:  # 조회된 데이터 없음
                         break
                     # 각 tr의 onclick 속성에서 mlsvId를 추출
-                    mlsvId = tds[2].a.get('onclick').replace(
-                        "fnDetail('", "").replace("');", "")
+                    mlsvId = tds[2].a.get('onclick').replace("fnDetail('", "").replace("');", "")
 
-                    task = asyncio.create_task(
-                        get_school_meal_popup_view(mlsvId))
+                    task = asyncio.create_task(get_school_meal_popup_view(mlsvId))
                     tasks.append(task)
 
             date += relativedelta(months=1)
