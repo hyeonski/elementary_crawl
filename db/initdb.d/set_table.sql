@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS `elementary`.`attached_file` (
   `download_url` VARCHAR(255) NOT NULL,
   `updated_at` TIMESTAMP NOT NULL DEFAULT current_timestamp ON UPDATE current_timestamp,
   PRIMARY KEY (`id`),
+  UNIQUE (`post_id`, `data_key`),
   FOREIGN KEY (`post_id`)
   REFERENCES `elementary`.`post` (`id`)
   ON DELETE CASCADE

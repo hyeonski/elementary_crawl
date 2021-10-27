@@ -4,3 +4,5 @@ chromedriver
 .DS_Store
 data
 __pycache__
+.env
+google_credentials.json
