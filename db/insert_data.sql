@@ -5,4 +5,5 @@ INSERT INTO `elementary`.`post_type` (`name`) VALUES
   ('오늘의 급식');
 
 INSERT INTO `elementary`.`school` (`name`) VALUES
-  ('서울서이초등학교');
+  ('서울서이초등학교'),
+  ('전주인봉초등학교');
