@@ -79,6 +79,24 @@ class DBManager:
                 sql = "INSERT INTO attached_file (post_id, data_key, name, size, download_url) VALUES (%s, %s, %s, %s, %s)"
                 cursor.execute(sql, (post_id, data_key, name, size, download_url))
             self.db_connection.commit()
+    
+    def save_school_data(self, school_name: str):
+        with self.db_connection.cursor() as cursor:
+            cursor.execute(f"SELECT id FROM school WHERE name='{school_name}'")
+            result = cursor.fetchone()
+            if result is None:
+                sql = "INSERT INTO school (name) VALUES (%s)"
+                cursor.execute(sql, (school_name))
+                self.db_connection.commit()
+                print(f'{school_name} 저장됨')
+            else:
+                print(f'{school_name} 이미 저장됨')
+
+    def get_all_school_names(self) -> List[str]:
+        with self.db_connection.cursor() as cursor:
+            cursor.execute("SELECT name FROM school")
+            result = cursor.fetchall()
+            return [row[0] for row in result]
 
     def get_school_id_by_name(self, school_name: str) -> int:
         with self.db_connection.cursor() as cursor:
