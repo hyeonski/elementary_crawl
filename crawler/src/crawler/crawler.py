@@ -6,9 +6,10 @@ from request import Session
 
 
 class ACrawler(metaclass=ABCMeta):
-    def __init__(self, school_main_url: str):
+    def __init__(self, school_name: str, school_main_url: str):
         asyncio.get_event_loop().run_until_complete(self.start_session(school_main_url))
         self.db_manager = DBManager()
+        self.school = self.db_manager.get_school_by_name(school_name)
 
     async def start_session(self, school_main_url: str):
         self.session = Session()

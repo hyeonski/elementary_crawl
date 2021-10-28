@@ -7,7 +7,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 
 from request import Session
-from database import DBManager, Post
+from database import DBManager, Post, School
 
 
 class SchoolMealCrawler():
@@ -22,14 +22,14 @@ class SchoolMealCrawler():
 
     async def run(self):
         coro: List[Task] = []
-        school_name_list = self.db_manager.get_all_school_names()
-        for school_name in school_name_list:
-            coro.append(create_task(self.get_school_meal(school_name)))
+        school_list = self.db_manager.get_all_schools()
+        for school in school_list:
+            coro.append(create_task(self.crawl_school_meal(school)))
         await gather(*coro)
 
-    async def get_school_meal(self, school_name: str):
+    async def crawl_school_meal(self, school: School):
         now = datetime.now()
-        ATPT_OFCDC_SC_CODE, SD_SCHUL_CODE = await self.get_school_code(school_name)
+        ATPT_OFCDC_SC_CODE, SD_SCHUL_CODE = await self.get_school_code(school.name)
         pSize = 1000
         pIndex = 1
         response = await self.session.get('https://open.neis.go.kr/hub/mealServiceDietInfo', params={
@@ -55,11 +55,11 @@ class SchoolMealCrawler():
                 '%Y%m%d',
             )
             menu = item.select_one('DDISH_NM').text
-            self.db_manager.store_post_data(Post(
-                school_name=school_name,
-                post_type_name='오늘의 급식',
+            self.db_manager.save_post(Post(
+                school_id=school.id,
+                post_type_id=self.db_manager.get_post_type_by_name('오늘의 급식').id,
                 data_key=date.strftime('%Y%m%d'),
-                author=school_name,
+                author=school.name,
                 upload_at=date.strftime('%Y-%m-%d'),
                 title=f'{date.strftime("%Y년 %m월 %d일")} [{meal_type}]',
                 content=f'<p>{menu}</p>',
@@ -73,7 +73,8 @@ class SchoolMealCrawler():
         })
         soup = BeautifulSoup(response.text(), 'xml')
         if soup.select_one('RESULT > CODE').text != 'INFO-000':
-            raise Exception(f'해당하는 학교 정보가 없습니다.: {soup.select_one("RESULT > CODE").text}')
+            raise Exception(
+                f'해당하는 학교 정보가 없습니다.: {soup.select_one("RESULT > CODE").text}')
         ATPT_OFCDC_SC_CODE = soup.select_one('ATPT_OFCDC_SC_CODE').text
         SD_SCHUL_CODE = soup.select_one('SD_SCHUL_CODE').text
         return ATPT_OFCDC_SC_CODE, SD_SCHUL_CODE

@@ -14,7 +14,7 @@ from dateutil.relativedelta import relativedelta
 from crawler.crawler import ACrawler
 
 from request import Response
-from database import AttachedFile, Post
+from database import AttachedFile, Post, PostType
 from parse import get_form_data_from_inputs, manip_board_content
 from upload_file import upload_attachment_from_bytes
 
@@ -30,6 +30,7 @@ class SeoulSeoiCrawler(ACrawler):
         await self.crawl_school_meal()
 
     async def crawl_board(self, board_url: str, post_type_name: str):
+        post_type = self.db_manager.get_post_type_by_name(post_type_name)
         form_data = {
             'bbsId': '',
             'bbsTyCode': '',
@@ -62,7 +63,7 @@ class SeoulSeoiCrawler(ACrawler):
 
                 task = asyncio.create_task(
                     self.get_post_detail_view(
-                        deepcopy(form_data), post_type_name)
+                        deepcopy(form_data), post_type)
                 )
                 tasks.append(task)
 
@@ -70,18 +71,18 @@ class SeoulSeoiCrawler(ACrawler):
             form_data['ifNttId'] = ''
             form_data['pageIndex'] = str(int(form_data['pageIndex']) + 1)
 
-    async def get_post_detail_view(self, form_data: dict, post_type_name):
+    async def get_post_detail_view(self, form_data: dict, post_type: PostType):
         response = await self.session.post('https://seo2.sen.es.kr/dggb/module/board/selectBoardDetailAjax.do', data=form_data)
         # await self.scrape_seoi_board_detail(response.text(), post_type_name, form_data['nttId'])
-        await self.scrape_seoi_board_detail(response.text(), post_type_name, form_data['nttId'], response)
+        await self.scrape_seoi_board_detail(response.text(), post_type, form_data['nttId'], response)
 
     # async def scrape_seoi_board_detail(self, detail_page: str, post_type_name: str, ntt_id: str):
-    async def scrape_seoi_board_detail(self, detail_page: str, post_type_name: str, ntt_id: str, response: Response):
+    async def scrape_seoi_board_detail(self, detail_page: str, post_type: PostType, ntt_id: str, response: Response):
         soup = BeautifulSoup(detail_page, 'html.parser')
         print("[-----------------------------------------------------------------------")
         elems_in_table = soup.select('tbody > tr > td > div')
         if len(elems_in_table) == 0:
-            print(f"{post_type_name} {ntt_id} 상세 페이지 정보 없음")
+            print(f"{post_type.name} {ntt_id} 상세 페이지 정보 없음")
             print(response.status)
         print("-------------------------------------------------------------------------]")
 
@@ -95,8 +96,8 @@ class SeoulSeoiCrawler(ACrawler):
         await manip_board_content(self.session, content)
 
         post = Post(
-            school_name='서울서이초등학교',
-            post_type_name=post_type_name,
+            school_id=self.school.id,
+            post_type_id=post_type.id,
             data_key=ntt_id,
             author=author,
             upload_at=upload_at,
@@ -108,7 +109,7 @@ class SeoulSeoiCrawler(ACrawler):
         if file_div != None:
             post.attached_files = await self.get_attached_files(file_div)
 
-        self.db_manager.store_post_data(post)
+        self.db_manager.save_post(post)
 
     async def get_attached_files(self, file_div: Tag) -> List[AttachedFile]:
         user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36'
@@ -206,12 +207,12 @@ class SeoulSeoiCrawler(ACrawler):
         content += f'<img src="{image_url}" alt="{date} {type} 급식 이미지" width="300">'
 
         post = Post(
-            school_name='서울서이초등학교',
-            post_type_name='급식 소식',
+            school_id=self.school.id,
+            post_type_id=self.db_manager.get_post_type_by_name('급식 소식').id,
             data_key=mlsvId,
             author='서울서이초등학교',
             upload_at=date.strftime('%Y-%m-%d'),
             title=f'{date.strftime("%Y년 %m월 %d일")} [{type}]',
             content=content,
         )
-        self.db_manager.store_post_data(post)
+        self.db_manager.save_post(post)
