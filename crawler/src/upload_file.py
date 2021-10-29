@@ -3,9 +3,6 @@ import os
 from google.cloud import storage
 
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './google_credentials.json'
-
-
 def upload_blob_from_bytes(bucket_name: str, data: bytes, destination_blob_name: str):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)

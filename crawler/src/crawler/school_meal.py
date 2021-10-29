@@ -10,7 +10,7 @@ from request import Session
 from database import DBManager, Post, School
 
 
-class SchoolMealCrawler():
+class SchoolMealCrawler:
     def __init__(self):
         self.key = os.environ['NEIS_OPEN_API_KEY']
         self.session = Session()

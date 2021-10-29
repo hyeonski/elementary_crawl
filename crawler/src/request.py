@@ -1,4 +1,4 @@
-from asyncio import get_event_loop, Semaphore, sleep
+from asyncio import Semaphore
 
 from aiohttp import ClientSession
 from multidict import CIMultiDictProxy
@@ -16,16 +16,18 @@ class Response:
 
 
 class Session:
-    def __init__(self):
+    def __init__(self, num_of_sema: int=5):
         self.session = ClientSession()
-        self.semaphore = Semaphore(5)
-
-    def __del__(self):
-        get_event_loop().run_until_complete(self.session.close())
+        self.semaphore = Semaphore(num_of_sema)
+        self.base_url = None
+    
+    async def close(self):
+        await self.session.close()
 
     async def request(self, method: str, url: str, **kwargs) -> Response:
+        if (not url.startswith('http')) and (self.base_url != None):
+            url = self.base_url + url
         async with self.semaphore:
-            await sleep(0.5)
             async with self.session.request(method, url, ssl=False, **kwargs) as response:
                 raw = await response.read()
                 return Response(response.status, response.headers, raw, response.get_encoding())
