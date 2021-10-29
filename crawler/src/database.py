@@ -88,7 +88,7 @@ class DBManager:
         password = os.environ['DB_PASSWORD']
         database = os.environ['DB_DATABASE']
         self.db_connection = pymysql.connect(
-            host=host, user=user, password=password, db=database, charset='utf8')
+            host=host, user=user, password=password, db=database, charset='utf8mb4')
 
     def __del__(self):
         self.db_connection.close()
