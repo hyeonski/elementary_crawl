@@ -4,6 +4,8 @@ from typing import List
 import pymysql
 from dotenv import load_dotenv
 
+from util import print_log
+
 
 class School:
     id: int = None
@@ -118,7 +120,7 @@ class DBManager:
             if attached_files is not None:
                 self.save_attached_files(id, attached_files)
 
-            print(f'{school_id} {post_type_id} {data_key} 저장됨')
+            print_log(f'{school_id} {post_type_id} {data_key} saved')
             return id
 
     def save_attached_files(self, post_id: int, attached_files: List[AttachedFile]):
@@ -140,9 +142,9 @@ class DBManager:
                 sql = "INSERT INTO school (name) VALUES (%s)"
                 cursor.execute(sql, (school_name))
                 self.db_connection.commit()
-                print(f'{school_name} 저장됨')
+                print_log(f'{school_name} saved')
             else:
-                print(f'{school_name} 이미 저장됨')
+                print_log(f'{school_name} already saved')
 
     def get_post_type_by_name(self, name: str) -> PostType:
         with self.db_connection.cursor() as cursor:

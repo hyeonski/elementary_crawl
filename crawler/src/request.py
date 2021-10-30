@@ -1,39 +1,33 @@
-from asyncio import Semaphore
+from requests import Session
+from requests.models import Response
 
-from aiohttp import ClientSession
-from multidict import CIMultiDictProxy
+from util import print_log
 
-
-class Response:
-    def __init__(self, status: int, headers: CIMultiDictProxy[str], raw: bytes, encoding: str):
-        self.status = status
-        self.headers = headers
-        self.raw = raw
-        self.encoding = encoding
-
-    def text(self) -> str:
-        return self.raw.decode(self.encoding)
-
-
-class Session:
-    def __init__(self, num_of_sema: int=5):
-        self.session = ClientSession()
-        self.semaphore = Semaphore(num_of_sema)
+class MySession:
+    def __init__(self):
+        self.session = Session()
         self.base_url = None
-    
-    async def close(self):
-        await self.session.close()
 
-    async def request(self, method: str, url: str, **kwargs) -> Response:
+    def request(self, method: str, url: str, **kwargs) -> Response:
+        retry_cnt = 0
+        max_retry = 5
+
         if (not url.startswith('http')) and (self.base_url != None):
             url = self.base_url + url
-        async with self.semaphore:
-            async with self.session.request(method, url, ssl=False, **kwargs) as response:
-                raw = await response.read()
-                return Response(response.status, response.headers, raw, response.get_encoding())
+        while True:
+            response = self.session.request(method, url, **kwargs)
+            if response.status_code != 502:
+                return response
+            if retry_cnt < max_retry:
+                print_log('502 error, retry')
+                retry_cnt += 1
+            else: 
+                print_log('502 error, retry failed')
+                return response
 
-    async def get(self, url: str, **kwargs) -> Response:
-        return await self.request('GET', url, **kwargs)
 
-    async def post(self, url: str, **kwargs) -> Response:
-        return await self.request('POST', url, **kwargs)
+    def get(self, url: str, **kwargs) -> Response:
+        return self.request('GET', url, **kwargs)
+
+    def post(self, url: str, **kwargs) -> Response:
+        return self.request('POST', url, **kwargs)

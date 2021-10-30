@@ -2,6 +2,8 @@ import os
 
 from google.cloud import storage
 
+from util import print_log
+
 
 def upload_blob_from_bytes(bucket_name: str, data: bytes, destination_blob_name: str):
     storage_client = storage.Client()
@@ -9,7 +11,7 @@ def upload_blob_from_bytes(bucket_name: str, data: bytes, destination_blob_name:
     blob = bucket.blob(destination_blob_name)
     blob.upload_from_string(data, content_type='application/octect-stream')
 
-    print(f'File uploaded to {destination_blob_name}')
+    print_log(f'File uploaded to {destination_blob_name}')
 
 
 def upload_attachment_from_bytes(data: bytes, dest_blob_dir_name: str, dest_blob_name: str) -> str:

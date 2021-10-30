@@ -1,7 +1,5 @@
-from asyncio.tasks import Task
-from typing import List, Tuple
+from typing import Tuple
 import os
-from asyncio import gather, create_task
 from datetime import datetime
 
 from bs4 import BeautifulSoup
@@ -13,26 +11,23 @@ from database import DBManager, Post, School
 class SchoolMealCrawler:
     def __init__(self):
         self.key = os.environ['NEIS_OPEN_API_KEY']
-        self.session = Session()
         self.db_manager = DBManager()
+        self.session = Session()
 
     def __del__(self):
-        del self.session
         del self.db_manager
 
-    async def run(self):
-        coro: List[Task] = []
+    def run(self):
         school_list = self.db_manager.get_all_schools()
         for school in school_list:
-            coro.append(create_task(self.crawl_school_meal(school)))
-        await gather(*coro)
+            self.crawl_school_meal(school)
 
-    async def crawl_school_meal(self, school: School):
+    def crawl_school_meal(self, school: School):
         now = datetime.now()
-        ATPT_OFCDC_SC_CODE, SD_SCHUL_CODE = await self.get_school_code(school.name)
+        ATPT_OFCDC_SC_CODE, SD_SCHUL_CODE = self.get_school_code(school.name)
         pSize = 1000
         pIndex = 1
-        response = await self.session.get('https://open.neis.go.kr/hub/mealServiceDietInfo', params={
+        response = self.session.get('https://open.neis.go.kr/hub/mealServiceDietInfo', params={
             'key': self.key,
             'Type': 'xml',
             'ATPT_OFCDC_SC_CODE': ATPT_OFCDC_SC_CODE,
@@ -41,7 +36,7 @@ class SchoolMealCrawler:
             'pIndex': pIndex,
             'MLSV_FROM_YMD': datetime(now.year, now.month, 1).strftime('%Y%m%d'),
         })
-        soup = BeautifulSoup(response.text(), 'xml')
+        soup = BeautifulSoup(response.text, 'xml')
         code = soup.select_one('RESULT > CODE').text
         if code == 'INFO-200':
             return
@@ -65,13 +60,13 @@ class SchoolMealCrawler:
                 content=f'<p>{menu}</p>',
             ))
 
-    async def get_school_code(self, school_name: str) -> Tuple[str, str]:
-        response = await self.session.get('https://open.neis.go.kr/hub/schoolInfo', params={
+    def get_school_code(self, school_name: str) -> Tuple[str, str]:
+        response = self.session.get('https://open.neis.go.kr/hub/schoolInfo', params={
             'key': self.key,
             'Type': 'xml',
             'SCHUL_NM': school_name
         })
-        soup = BeautifulSoup(response.text(), 'xml')
+        soup = BeautifulSoup(response.text, 'xml')
         if soup.select_one('RESULT > CODE').text != 'INFO-000':
             raise Exception(
                 f'해당하는 학교 정보가 없습니다.: {soup.select_one("RESULT > CODE").text}')

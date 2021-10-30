@@ -1,5 +1,4 @@
-import asyncio
-from asyncio.tasks import Task
+
 import base64
 from copy import deepcopy
 from datetime import datetime
@@ -20,16 +19,16 @@ from util import get_form_data_from_inputs, stringify_tags
 
 
 class SeoulSeoiCrawler(ACrawler):
-    async def crawl_notice(self):
-        await self.crawl_board('/78584/subMenu.do', '공지사항')
+    def crawl_notice(self):
+        self.crawl_board('/78584/subMenu.do', '공지사항')
 
-    async def crawl_parent_letter(self):
-        await self.crawl_board('/78585/subMenu.do', '가정통신문')
+    def crawl_parent_letter(self):
+        self.crawl_board('/78585/subMenu.do', '가정통신문')
 
-    async def crawl_school_meal_news(self):
-        await self.crawl_school_meal()
+    def crawl_school_meal_news(self):
+        self.crawl_school_meal()
 
-    async def crawl_board(self, board_url: str, post_type_name: str):
+    def crawl_board(self, board_url: str, post_type_name: str):
         post_type = self.db_manager.get_post_type_by_name(post_type_name)
         form_data = {
             'bbsId': '',
@@ -37,20 +36,18 @@ class SeoulSeoiCrawler(ACrawler):
             'customRecordCountPerPage': '',
             'pageIndex': '',
         }
-        response = await self.session.get(board_url)
-        get_form_data_from_inputs(response.text(), form_data)
+        response = self.session.get(board_url)
+        get_form_data_from_inputs(response.text, form_data)
         # 리스트 한 페이지 당 게시글 수 조정
         form_data['customRecordCountPerPage'] = 1000
 
-        tasks: List[Task] = []
         while True:
-            response = await self.session.post('/dggb/module/board/selectBoardListAjax.do', data=form_data)
-            post_trs = (BeautifulSoup(response.text(), 'html.parser')
+            response = self.session.post('/dggb/module/board/selectBoardListAjax.do', data=form_data)
+            post_trs = (BeautifulSoup(response.text, 'html.parser')
                         .select('tbody > tr'))
             for post_tr in post_trs:
                 # 컬럼이 하나인 경우 조회된 내용 없음 -> 종료
                 if len(post_tr.find_all('td')) == 1:
-                    await asyncio.gather(*tasks)
                     return
                 # 첫 페이지 제외 공지는 건너뛰도록
                 if form_data['pageIndex'] != 1 and post_tr.td.span != None and post_tr.td.span.text == '공지':
@@ -61,31 +58,19 @@ class SeoulSeoiCrawler(ACrawler):
                 form_data['ifNttId'] = (base64.b64encode(form_data['nttId'].encode('ascii'))
                                         .decode('ascii'))
 
-                task = asyncio.create_task(
-                    self.get_post_detail_view(
-                        deepcopy(form_data), post_type)
-                )
-                tasks.append(task)
+                self.get_post_detail_view(deepcopy(form_data), post_type)
 
             form_data['nttId'] = ''
             form_data['ifNttId'] = ''
             form_data['pageIndex'] = str(int(form_data['pageIndex']) + 1)
 
-    async def get_post_detail_view(self, form_data: dict, post_type: PostType):
-        response = await self.session.post('/dggb/module/board/selectBoardDetailAjax.do', data=form_data)
-        # await self.scrape_seoi_board_detail(response.text(), post_type_name, form_data['nttId'])
-        await self.scrape_seoi_board_detail(response.text(), post_type, form_data['nttId'], response)
+    def get_post_detail_view(self, form_data: dict, post_type: PostType):
+        response = self.session.post('/dggb/module/board/selectBoardDetailAjax.do', data=form_data)
+        self.scrape_seoi_board_detail(response.text, post_type, form_data['nttId'])
 
-    # async def scrape_seoi_board_detail(self, detail_page: str, post_type_name: str, ntt_id: str):
-    async def scrape_seoi_board_detail(self, detail_page: str, post_type: PostType, ntt_id: str, response: Response):
+    def scrape_seoi_board_detail(self, detail_page: str, post_type: PostType, ntt_id: str):
         soup = BeautifulSoup(detail_page, 'html.parser')
-        print("[-----------------------------------------------------------------------")
         elems_in_table = soup.select('tbody > tr > td > div')
-        if len(elems_in_table) == 0:
-            print(f"{post_type.name} {ntt_id} 상세 페이지 정보 없음")
-            print(response.status)
-            print(response.text())
-        print("-------------------------------------------------------------------------]")
 
         author = elems_in_table[0].text.strip()
         upload_at = elems_in_table[1].text.strip()
@@ -108,11 +93,11 @@ class SeoulSeoiCrawler(ACrawler):
 
         file_div = soup.select_one('div#file_div')
         if file_div != None:
-            post.attached_files = await self.get_attached_files(file_div)
+            post.attached_files = self.get_attached_files(file_div)
 
         self.db_manager.save_post(post)
 
-    async def get_attached_files(self, file_div: Tag) -> List[AttachedFile]:
+    def get_attached_files(self, file_div: Tag) -> List[AttachedFile]:
         user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36'
         atch_file_id = (file_div.select_one('input[name=atchFileId]')
                         .get('value'))
@@ -125,7 +110,7 @@ class SeoulSeoiCrawler(ACrawler):
         file_sn = -1
         while file_down_cnt < int(file_list_cnt):
             file_sn += 1
-            response = await self.session.get(
+            response = self.session.get(
                 '/dggb/board/boardFile/downFile.do',
                 params={
                     'atchFileId': atch_file_id,
@@ -140,7 +125,7 @@ class SeoulSeoiCrawler(ACrawler):
                             .split('filename=')[1]))
             size = response.headers['Content-Length']
             public_url = upload_attachment_from_bytes(
-                response.raw, dir_uuid, name)
+                response.content, dir_uuid, name)
 
             file_list.append(AttachedFile(
                 data_key=f'{atch_file_id}-{file_sn}',
@@ -151,7 +136,7 @@ class SeoulSeoiCrawler(ACrawler):
             file_down_cnt += 1
         return file_list
 
-    async def crawl_school_meal(self):
+    def crawl_school_meal(self):
         board_url = '/78586/subMenu.do'
         form_data = {
             'viewType': '',
@@ -160,11 +145,10 @@ class SeoulSeoiCrawler(ACrawler):
             'srhMlsvYear': '',
             'srhMlsvMonth': '',
         }
-        response = await self.session.get(board_url)
-        get_form_data_from_inputs(response.text(), form_data)
+        response = self.session.get(board_url)
+        get_form_data_from_inputs(response.text, form_data)
         form_data['viewType'] = 'list'
 
-        tasks: List[Task] = []
         date = datetime(2017, 1, 1)
         while True:
             if (date > datetime.now()):
@@ -173,8 +157,8 @@ class SeoulSeoiCrawler(ACrawler):
             form_data['srhMlsvMonth'] = str(date.month).zfill(2)
             for page in ['1', '2']:
                 form_data['pageIndex'] = page
-                response = await self.session.post(board_url, data=form_data)
-                menu_list_trs = (BeautifulSoup(response.text(), 'html.parser')
+                response = self.session.post(board_url, data=form_data)
+                menu_list_trs = (BeautifulSoup(response.text, 'html.parser')
                                  .select('table.board_type01_tb_list > tbody > tr'))
                 for menu_list_tr in menu_list_trs:
                     tds = menu_list_tr.select('td')
@@ -185,19 +169,15 @@ class SeoulSeoiCrawler(ACrawler):
                               .replace("fnDetail('", "")
                               .replace("');", ""))
 
-                    task = asyncio.create_task(
-                        self.get_school_meal_popup_view(mlsvId)
-                    )
-                    tasks.append(task)
+                    self.get_school_meal_popup_view(mlsvId)
 
             date += relativedelta(months=1)
-        await asyncio.gather(*tasks)
 
-    async def get_school_meal_popup_view(self, mlsvId: str):
-        response = await self.session.post('/dggb/module/mlsv/selectMlsvDetailPopup.do', data={'mlsvId': mlsvId})
-        await self.scrape_seoi_school_meal(response.text(), mlsvId)
+    def get_school_meal_popup_view(self, mlsvId: str):
+        response = self.session.post('/dggb/module/mlsv/selectMlsvDetailPopup.do', data={'mlsvId': mlsvId})
+        self.scrape_seoi_school_meal(response.text, mlsvId)
 
-    async def scrape_seoi_school_meal(self, popup_page: str, mlsvId: str):
+    def scrape_seoi_school_meal(self, popup_page: str, mlsvId: str):
         setlocale(LC_TIME, 'ko_KR.UTF-8')
         soup = BeautifulSoup(popup_page, 'html.parser')
         trs = soup.select('table.tbType02 > tbody > tr')
@@ -209,11 +189,11 @@ class SeoulSeoiCrawler(ACrawler):
         if image_url == None:
             return
         
-        response = await self.session.get(image_url)
-        public_url = upload_image_from_bytes(response.raw, str(uuid1()))
+        response = self.session.get(image_url)
+        public_url = upload_image_from_bytes(response.content, str(uuid1()))
         # 내용(본문)은 메뉴, 식단이미지로 구성
         content = f'<p>{menu}</p>'
-        content += f'<img src="{public_url}" alt="{date} {type} 급식 이미지" width="300">'
+        content += f'<img src="{public_url}" alt="{date} {type} 급식 이미지" class="img-uploaded">'
 
         post = Post(
             school_id=self.school.id,
