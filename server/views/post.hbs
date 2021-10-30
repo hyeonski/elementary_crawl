@@ -4,7 +4,7 @@
     <meta charset='UTF-8' />
     <meta http-equiv='X-UA-Compatible' content='IE=edge' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>서울서이초등학교</title>
+    <title>NHN EDU PYTHON CRAWLING</title>
     <link
       rel='stylesheet'
       href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css'
@@ -12,6 +12,8 @@
     <style>
       body { margin: auto; width: 1080px; } main { margin-top: 50px; }
       .file_button_wrap { margin: 5px; }
+      .school-title { color: #000; }
+      .img-uploaded { width: 100%; }
     </style>
   </head>
 
@@ -36,7 +38,7 @@
               {{#each attachedFiles}}
                 <div class='file_button_wrap'>
                   <button
-                    onclick="location.href='https://seo2.sen.es.kr/dggb/board/boardFile/downFile.do?atchFileId={{attachedFileId}}&fileSn={{fileSn}}'"
+                    onclick="location.href='{{downloadUrl}}'"
                     type='button'
                     class='btn btn-default'
                   >

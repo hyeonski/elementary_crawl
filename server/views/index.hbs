@@ -21,9 +21,18 @@
       </div>
     </header>
     <main>
-        <h1>페이지를 찾을 수 없습니다.</h1>
-        <br />
-        <a class="btn btn-primary btn-lg" href="/" role="button">메인 화면으로</a>
+      <div class='panel panel-default'>
+        <div class='panel-heading'>
+          <h3 class='panel-title'>학교 선택</h3>
+        </div>
+        <ul class='list-group'>
+          {{#schools}}
+            <li class='list-group-item'>
+              <a href='/school/{{id}}' style="font-size: medium;">{{name}}</a>
+            </li>
+          {{/schools}}
+        </ul>
+      </div>
     </main>
   </body>
 

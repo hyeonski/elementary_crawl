@@ -4,21 +4,28 @@
     <meta charset='UTF-8' />
     <meta http-equiv='X-UA-Compatible' content='IE=edge' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>서울서이초등학교</title>
+    <title>NHN EDU PYTHON CRAWLING</title>
     <link
       rel='stylesheet'
       href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css'
     />
     <style>
       body { margin: auto; width: 1080px; } main { margin-top: 50px; }
+      .school-title { color: #000; }
     </style>
   </head>
 
   <body>
-    {{> detail_header}}
+    <header>
+      <div class='page-header'>
+        <h1>NHN EDU PYTHON CRAWLING</h1>
+      </div>
+    </header>
     <main>
-        <h1>Error!</h1>
-        <p>{{statusCode}}: {{message}}</p>
+      <h1>Error!</h1>
+      <p>{{statusCode}}: {{message}}</p>
+      <br />
+      <a class='btn btn-primary btn-lg' href='/' role='button'>메인 화면으로</a>
     </main>
   </body>
 
