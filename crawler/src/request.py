@@ -1,3 +1,5 @@
+from time import sleep
+
 from requests import Session
 from requests.models import Response
 
@@ -21,6 +23,7 @@ class MySession:
             if retry_cnt < max_retry:
                 print_log('502 error, retry')
                 retry_cnt += 1
+				sleep(5)
             else: 
                 print_log('502 error, retry failed')
                 return response
