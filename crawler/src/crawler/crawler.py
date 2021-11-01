@@ -59,6 +59,8 @@ class ACrawler(metaclass=ABCMeta):
                 public_url = upload_image_from_bytes(response.content, f'{str(uuid1())}{extname}')
                 img_tag['src'] = public_url
                 img_tag['class'] = 'img-uploaded'
+                if img_tag.get('style') != None:
+                    del img_tag['style']
             else:
                 raise Exception(f'{response.status_code}')
         except Exception as e:
