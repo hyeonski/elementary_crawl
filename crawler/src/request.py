@@ -23,7 +23,7 @@ class MySession:
             if retry_cnt < max_retry:
                 print_log('502 error, retry')
                 retry_cnt += 1
-				sleep(5)
+                sleep(5)
             else: 
                 print_log('502 error, retry failed')
                 return response
